@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 
-import { GAME_HEIGHT, GAME_WIDTH } from "../config/gameConfig";
+import { GAME_HEIGHT, GAME_WIDTH } from "../config/dimensions";
 import { THEME, colorHex } from "../config/theme";
 import { BUILD_COPY } from "../data/build";
 import { evaluateDesign } from "../sim/evaluator";
@@ -12,7 +12,9 @@ import type {
   SimulationState,
   SystemDesign,
 } from "../sim/types";
+import { preferences } from "../state/preferences";
 import { progression } from "../state/progression";
+import { audio } from "../systems/AudioSystem";
 import { gameEvents } from "../systems/EventBus";
 import { BuildNode } from "../ui/BuildNode";
 import { Palette } from "../ui/Palette";
@@ -39,6 +41,7 @@ export class BuildScene extends Phaser.Scene {
   private runButton!: Phaser.GameObjects.Container;
   private trafficDots: Phaser.GameObjects.Arc[] = [];
   private outcomePanel?: Phaser.GameObjects.Container;
+  private crashCount = 0;
 
   constructor() {
     super("BuildScene");
@@ -338,6 +341,7 @@ export class BuildScene extends Phaser.Scene {
 
     this.simulation = createSimulation(design);
     this.running = true;
+    this.crashCount = 0;
     this.runButton.setAlpha(0.45);
     this.phaseText.setText("STRESS SCHEDULE ACTIVE");
     this.createTrafficDots();
@@ -355,6 +359,15 @@ export class BuildScene extends Phaser.Scene {
     state.servers.forEach((server) => {
       this.nodes.get(server.id)?.setServerStatus(server.health, server.loadRps);
     });
+    const crashedServers = state.servers.filter(
+      (server) => server.health === "crashed",
+    );
+    const currentCrashCount = crashedServers.length;
+    if (currentCrashCount > this.crashCount) {
+      const newestCrash = crashedServers[crashedServers.length - 1];
+      if (newestCrash) this.playCrashEffect(newestCrash.id);
+      this.crashCount = currentCrashCount;
+    }
     this.nodes
       .get("client")
       ?.outputPort?.setFillStyle(
@@ -381,6 +394,12 @@ export class BuildScene extends Phaser.Scene {
   private showOutcome(evaluation: Evaluation): void {
     this.destroyTrafficDots();
     this.runButton.setAlpha(1);
+    if (evaluation.quality === "canonical") {
+      audio.playSuccess();
+      this.playCelebration();
+    } else if (evaluation.quality === "failed") {
+      audio.playCrash();
+    }
     if (evaluation.quality !== "failed") {
       progression.completeFloor(1, evaluation.quality, evaluation.debtNotes);
       gameEvents.emit("progression:updated", progression.snapshot);
@@ -489,6 +508,58 @@ export class BuildScene extends Phaser.Scene {
 
   private resetNodeStatuses(): void {
     this.nodes.forEach((node) => node.resetStatus());
+  }
+
+  private playCrashEffect(nodeId: string): void {
+    const node = this.nodes.get(nodeId);
+    if (!node) return;
+    audio.playCrash();
+    if (!preferences.snapshot.reducedMotion) {
+      this.cameras.main.shake(240, 0.009);
+    }
+    for (let index = 0; index < 9; index += 1) {
+      const spark = this.add
+        .circle(node.x, node.y, Phaser.Math.Between(3, 7), THEME.colors.alert)
+        .setDepth(50);
+      this.tweens.add({
+        targets: spark,
+        x: node.x + Phaser.Math.Between(-70, 70),
+        y: node.y + Phaser.Math.Between(-80, 20),
+        alpha: 0,
+        duration: preferences.snapshot.reducedMotion ? 120 : 520,
+        onComplete: () => spark.destroy(),
+      });
+    }
+  }
+
+  private playCelebration(): void {
+    if (!preferences.snapshot.reducedMotion) {
+      this.cameras.main.flash(500, 47, 133, 90);
+    }
+    for (let index = 0; index < 36; index += 1) {
+      const confetti = this.add
+        .rectangle(
+          Phaser.Math.Between(CANVAS_LEFT, CANVAS_RIGHT),
+          Phaser.Math.Between(90, 180),
+          8,
+          18,
+          index % 2 === 0 ? THEME.colors.success : THEME.colors.warning,
+        )
+        .setDepth(160)
+        .setAngle(Phaser.Math.Between(0, 180));
+      this.tweens.add({
+        targets: confetti,
+        y: GAME_HEIGHT + 40,
+        angle: confetti.angle + Phaser.Math.Between(180, 540),
+        duration: preferences.snapshot.reducedMotion
+          ? 250
+          : Phaser.Math.Between(1100, 2200),
+        delay: preferences.snapshot.reducedMotion
+          ? 0
+          : Phaser.Math.Between(0, 450),
+        onComplete: () => confetti.destroy(),
+      });
+    }
   }
 
   private showConsoleMessage(message: string): void {

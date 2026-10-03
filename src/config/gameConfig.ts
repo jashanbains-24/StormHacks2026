@@ -5,10 +5,8 @@ import { BootScene } from "../scenes/BootScene";
 import { FloorScene } from "../scenes/FloorScene";
 import { PreloadScene } from "../scenes/PreloadScene";
 import { UIScene } from "../scenes/UIScene";
+import { GAME_HEIGHT, GAME_WIDTH } from "./dimensions";
 import { THEME } from "./theme";
-
-export const GAME_WIDTH = 1280;
-export const GAME_HEIGHT = 720;
 
 export const createGameConfig = (
   parent: string,

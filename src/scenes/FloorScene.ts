@@ -1,11 +1,12 @@
 import Phaser from "phaser";
 
-import { GAME_HEIGHT, GAME_WIDTH } from "../config/gameConfig";
+import { GAME_HEIGHT, GAME_WIDTH } from "../config/dimensions";
 import { THEME, colorHex } from "../config/theme";
 import { floorById } from "../data/floors";
 import type { Interactable } from "../entities/Interactable";
 import { Npc } from "../entities/Npc";
 import { Player } from "../entities/Player";
+import { preferences } from "../state/preferences";
 import { progression } from "../state/progression";
 import { gameEvents } from "../systems/EventBus";
 import { InteractionSystem } from "../systems/InteractionSystem";
@@ -35,6 +36,7 @@ export class FloorScene extends Phaser.Scene {
     this.createBoundaries();
     this.createHeader();
     this.decorateOffice();
+    this.createEmergencyLights();
 
     this.interactions = new InteractionSystem(this, this.player);
     this.interactions.setInteractables(this.createFloorContent());
@@ -122,6 +124,23 @@ export class FloorScene extends Phaser.Scene {
     addProp(1050, 570, "bookshelf", 3);
     addProp(110, 135, "plant", 3);
     addProp(1120, 135, "plant", 3);
+  }
+
+  private createEmergencyLights(): void {
+    const resolved = progression.snapshot.floorResults[1] !== undefined;
+    const color = resolved ? THEME.colors.success : THEME.colors.alert;
+    [180, 640, 1090].forEach((x) => {
+      const light = this.add.circle(x, 97, 10, color, 0.9).setDepth(30);
+      if (!resolved && !preferences.snapshot.reducedMotion) {
+        this.tweens.add({
+          targets: light,
+          alpha: { from: 0.25, to: 1 },
+          duration: 520,
+          yoyo: true,
+          repeat: -1,
+        });
+      }
+    });
   }
 
   private createFloorContent(): Interactable[] {

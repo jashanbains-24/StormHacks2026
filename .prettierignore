@@ -1,0 +1,7 @@
+.gitignore
+dist/
+node_modules/
+public/assets/
+package-lock.json
+PROJECT_SPEC.md
+LICENSE

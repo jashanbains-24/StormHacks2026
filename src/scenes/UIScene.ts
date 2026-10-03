@@ -1,9 +1,12 @@
 import Phaser from "phaser";
 
-import { GAME_HEIGHT, GAME_WIDTH } from "../config/gameConfig";
+import { GAME_HEIGHT, GAME_WIDTH } from "../config/dimensions";
 import { THEME, colorHex } from "../config/theme";
 import { MANAGER_ALERT, TUTORIAL_COPY } from "../data/dialogue";
 import type { GlossaryEntry } from "../data/glossary";
+import { preferences } from "../state/preferences";
+import { progression } from "../state/progression";
+import { audio } from "../systems/AudioSystem";
 import { DialogueSystem } from "../systems/DialogueSystem";
 import { gameEvents } from "../systems/EventBus";
 import { GlossaryPopup } from "../ui/GlossaryPopup";
@@ -16,6 +19,10 @@ export class UIScene extends Phaser.Scene {
   private objective!: Phaser.GameObjects.Text;
   private speech?: SpeechBubble;
   private notification?: Notification;
+  private alertFrame!: Phaser.GameObjects.Rectangle;
+  private alertTween?: Phaser.Tweens.Tween;
+  private soundToggle!: Phaser.GameObjects.Text;
+  private motionToggle!: Phaser.GameObjects.Text;
 
   constructor() {
     super("UIScene");
@@ -43,6 +50,11 @@ export class UIScene extends Phaser.Scene {
         padding: { x: 11, y: 7 },
       })
       .setDepth(900);
+    this.createEmergencyFrame();
+    this.createAccessibilityControls();
+    if (progression.snapshot.floorResults[1]) {
+      this.handleProgressionUpdated();
+    }
 
     gameEvents.on("interaction:available", this.showInteraction, this);
     gameEvents.on("interaction:clear", this.hideInteraction, this);
@@ -51,6 +63,7 @@ export class UIScene extends Phaser.Scene {
     gameEvents.on("ui:toast", this.showToast, this);
     gameEvents.on("build:open", this.openBuildScene, this);
     gameEvents.on("build:closed", this.handleBuildClosed, this);
+    gameEvents.on("progression:updated", this.handleProgressionUpdated, this);
 
     this.notification = new Notification(
       this,
@@ -84,6 +97,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   private showSpecialistHint(): void {
+    audio.playClick();
     this.speech?.destroy();
     this.speech = new SpeechBubble(
       this,
@@ -120,6 +134,81 @@ export class UIScene extends Phaser.Scene {
 
   private handleBuildClosed(): void {
     this.objective.setVisible(true);
+    if (progression.snapshot.floorResults[1]) {
+      this.scene.stop("FloorScene");
+      this.scene.launch("FloorScene", { floor: 1 });
+      this.scene.bringToTop();
+    }
+  }
+
+  private createEmergencyFrame(): void {
+    this.alertFrame = this.add
+      .rectangle(
+        GAME_WIDTH / 2,
+        GAME_HEIGHT / 2,
+        GAME_WIDTH - 12,
+        GAME_HEIGHT - 12,
+      )
+      .setStrokeStyle(9, THEME.colors.alert, 0.58)
+      .setDepth(850);
+    this.updateEmergencyMotion();
+  }
+
+  private updateEmergencyMotion(): void {
+    this.alertTween?.stop();
+    this.alertFrame.setAlpha(0.7);
+    if (preferences.snapshot.reducedMotion) return;
+    this.alertTween = this.tweens.add({
+      targets: this.alertFrame,
+      alpha: { from: 0.25, to: 0.9 },
+      duration: 620,
+      yoyo: true,
+      repeat: -1,
+    });
+  }
+
+  private createAccessibilityControls(): void {
+    const style: Phaser.Types.GameObjects.Text.TextStyle = {
+      color: colorHex(THEME.colors.white),
+      backgroundColor: colorHex(THEME.colors.ink),
+      fontFamily: THEME.fonts.mono,
+      fontSize: "11px",
+      padding: { x: 7, y: 5 },
+    };
+    this.soundToggle = this.add
+      .text(1060, 18, "", style)
+      .setDepth(950)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerup", () => {
+        preferences.toggleMuted();
+        audio.playClick();
+        this.refreshAccessibilityLabels();
+      });
+    this.motionToggle = this.add
+      .text(1163, 18, "", style)
+      .setDepth(950)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerup", () => {
+        preferences.toggleReducedMotion();
+        audio.playClick();
+        this.refreshAccessibilityLabels();
+        this.updateEmergencyMotion();
+      });
+    this.refreshAccessibilityLabels();
+  }
+
+  private refreshAccessibilityLabels(): void {
+    const current = preferences.snapshot;
+    this.soundToggle.setText(current.muted ? "SOUND OFF" : "SOUND ON");
+    this.motionToggle.setText(
+      current.reducedMotion ? "MOTION LOW" : "MOTION ON",
+    );
+  }
+
+  private handleProgressionUpdated(): void {
+    this.alertTween?.stop();
+    this.alertFrame.setAlpha(1).setStrokeStyle(9, THEME.colors.success, 0.9);
+    this.objective.setText("Floor 2 unlocked — take the elevator");
   }
 
   private removeListeners(): void {
@@ -130,5 +219,6 @@ export class UIScene extends Phaser.Scene {
     gameEvents.off("ui:toast", this.showToast, this);
     gameEvents.off("build:open", this.openBuildScene, this);
     gameEvents.off("build:closed", this.handleBuildClosed, this);
+    gameEvents.off("progression:updated", this.handleProgressionUpdated, this);
   }
 }

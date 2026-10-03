@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 
-import { GAME_HEIGHT, GAME_WIDTH } from "../config/gameConfig";
+import { GAME_HEIGHT, GAME_WIDTH } from "../config/dimensions";
 import { THEME, colorHex } from "../config/theme";
 import type { DialogueLine } from "../data/dialogue";
 import { glossaryById, type GlossaryEntry } from "../data/glossary";
