@@ -182,15 +182,6 @@ export class BuildScene extends Phaser.Scene {
       THEME.colors.alertDark,
       () => this.resetDesign(),
     );
-    this.createButton(
-      620,
-      GAME_HEIGHT - 45,
-      190,
-      48,
-      BUILD_COPY.clearWires,
-      THEME.colors.officeWall,
-      () => this.clearWires(),
-    );
   }
 
   private addComponent(type: PlaceableType, x: number, y: number): void {
@@ -575,18 +566,14 @@ export class BuildScene extends Phaser.Scene {
     this.nodes.forEach((node) => node.resetStatus());
   }
 
-  private clearWires(): void {
-    if (this.running || this.outcomePanel || this.connections.length === 0) {
-      return;
-    }
-    this.connections = [];
-    this.drawConnections();
-    this.persistDesign();
-    this.showConsoleMessage(BUILD_COPY.wiresCleared);
-  }
-
   private resetDesign(): void {
-    if (this.running || this.outcomePanel) return;
+    this.running = false;
+    this.outcomePanel?.destroy();
+    this.outcomePanel = undefined;
+    this.destroyTrafficDots();
+    this.runButton.setAlpha(1);
+    this.activeWireFrom = undefined;
+    this.activePointer = undefined;
     this.nodes.forEach((node) => node.destroy());
     this.nodes.clear();
     this.connections = [];
