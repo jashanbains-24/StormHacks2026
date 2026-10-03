@@ -39,6 +39,7 @@ export class BuildScene extends Phaser.Scene {
   private running = false;
   private statsText!: Phaser.GameObjects.Text;
   private phaseText!: Phaser.GameObjects.Text;
+  private saveText!: Phaser.GameObjects.Text;
   private runButton!: Phaser.GameObjects.Container;
   private trafficDots: Phaser.GameObjects.Arc[] = [];
   private outcomePanel?: Phaser.GameObjects.Container;
@@ -155,6 +156,13 @@ export class BuildScene extends Phaser.Scene {
         fontSize: "13px",
       })
       .setOrigin(1, 0);
+    this.saveText = this.add
+      .text(CANVAS_LEFT + 78, 94, BUILD_COPY.saved, {
+        color: colorHex(THEME.colors.muted),
+        fontFamily: THEME.fonts.mono,
+        fontSize: "12px",
+      })
+      .setAlpha(0.75);
 
     this.runButton = this.createButton(
       GAME_WIDTH - 222,
@@ -173,6 +181,15 @@ export class BuildScene extends Phaser.Scene {
       BUILD_COPY.reset,
       THEME.colors.alertDark,
       () => this.resetDesign(),
+    );
+    this.createButton(
+      620,
+      GAME_HEIGHT - 45,
+      190,
+      48,
+      BUILD_COPY.clearWires,
+      THEME.colors.officeWall,
+      () => this.clearWires(),
     );
   }
 
@@ -558,6 +575,16 @@ export class BuildScene extends Phaser.Scene {
     this.nodes.forEach((node) => node.resetStatus());
   }
 
+  private clearWires(): void {
+    if (this.running || this.outcomePanel || this.connections.length === 0) {
+      return;
+    }
+    this.connections = [];
+    this.drawConnections();
+    this.persistDesign();
+    this.showConsoleMessage(BUILD_COPY.wiresCleared);
+  }
+
   private resetDesign(): void {
     if (this.running || this.outcomePanel) return;
     this.nodes.forEach((node) => node.destroy());
@@ -581,6 +608,15 @@ export class BuildScene extends Phaser.Scene {
 
   private persistDesign(): void {
     buildDesignStore.save(this.toDesign());
+    if (this.saveText?.active) {
+      this.saveText.setAlpha(1);
+      this.tweens.killTweensOf(this.saveText);
+      this.tweens.add({
+        targets: this.saveText,
+        alpha: 0.55,
+        duration: 700,
+      });
+    }
   }
 
   private playCrashEffect(nodeId: string): void {
