@@ -3,6 +3,7 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../config/dimensions";
 import { THEME, colorHex } from "../config/theme";
 import { floorById } from "../data/floors";
+import { AMBIENT_NPCS_BY_FLOOR, OFFICE_PROPS } from "../data/office";
 import type { Interactable } from "../entities/Interactable";
 import { Npc } from "../entities/Npc";
 import { Player } from "../entities/Player";
@@ -36,6 +37,7 @@ export class FloorScene extends Phaser.Scene {
     this.createBoundaries();
     this.createHeader();
     this.decorateOffice();
+    this.createAmbientNpcs();
     this.createEmergencyLights();
 
     this.interactions = new InteractionSystem(this, this.player);
@@ -57,7 +59,7 @@ export class FloorScene extends Phaser.Scene {
     this.add
       .rectangle(0, 0, GAME_WIDTH, 64, THEME.colors.panelDark)
       .setOrigin(0);
-    this.add.text(28, 17, "UPTIME // " + title, {
+    this.add.text(28, 17, title, {
       color: colorHex(THEME.colors.white),
       fontFamily: THEME.fonts.family,
       fontSize: "24px",
@@ -116,14 +118,35 @@ export class FloorScene extends Phaser.Scene {
       return image;
     };
 
-    addProp(320, 190, "desk");
-    addProp(320, 170, "computer", 2.5, false);
-    addProp(570, 190, "desk");
-    addProp(570, 170, "computer", 2.5, false);
-    addProp(790, 570, "sofa", 3);
-    addProp(1050, 570, "bookshelf", 3);
-    addProp(110, 135, "plant", 3);
-    addProp(1120, 135, "plant", 3);
+    OFFICE_PROPS.forEach((prop) =>
+      addProp(
+        prop.x,
+        prop.y,
+        prop.texture,
+        prop.scale ?? 3,
+        prop.collider ?? true,
+      ),
+    );
+  }
+
+  private createAmbientNpcs(): void {
+    for (const placement of AMBIENT_NPCS_BY_FLOOR[this.currentFloor] ?? []) {
+      const npc = new Npc(this, placement.x, placement.y, placement.id, {
+        frame: placement.frame,
+        tint: placement.tint,
+        flipX: placement.flipX,
+        animated: false,
+      });
+      if (!preferences.snapshot.reducedMotion) {
+        this.tweens.add({
+          targets: npc,
+          y: npc.y - 2,
+          duration: 900 + Phaser.Math.Between(0, 350),
+          yoyo: true,
+          repeat: -1,
+        });
+      }
+    }
   }
 
   private createEmergencyLights(): void {
