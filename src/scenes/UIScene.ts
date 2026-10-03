@@ -49,7 +49,8 @@ export class UIScene extends Phaser.Scene {
     gameEvents.on("floor:changed", this.handleFloorChanged, this);
     gameEvents.on("dialogue:specialist", this.showSpecialistHint, this);
     gameEvents.on("ui:toast", this.showToast, this);
-    gameEvents.on("build:open", this.showBuildPending, this);
+    gameEvents.on("build:open", this.openBuildScene, this);
+    gameEvents.on("build:closed", this.handleBuildClosed, this);
 
     this.notification = new Notification(
       this,
@@ -108,8 +109,17 @@ export class UIScene extends Phaser.Scene {
     );
   }
 
-  private showBuildPending(): void {
-    this.showToast("Build console connected. Architecture tools are loading.");
+  private openBuildScene(): void {
+    if (this.scene.isActive("BuildScene")) return;
+    this.speech?.destroy();
+    this.objective.setVisible(false);
+    this.interactionPrompt.setVisible(false);
+    this.scene.pause("FloorScene");
+    this.scene.launch("BuildScene");
+  }
+
+  private handleBuildClosed(): void {
+    this.objective.setVisible(true);
   }
 
   private removeListeners(): void {
@@ -118,6 +128,7 @@ export class UIScene extends Phaser.Scene {
     gameEvents.off("floor:changed", this.handleFloorChanged, this);
     gameEvents.off("dialogue:specialist", this.showSpecialistHint, this);
     gameEvents.off("ui:toast", this.showToast, this);
-    gameEvents.off("build:open", this.showBuildPending, this);
+    gameEvents.off("build:open", this.openBuildScene, this);
+    gameEvents.off("build:closed", this.handleBuildClosed, this);
   }
 }

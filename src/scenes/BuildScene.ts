@@ -1,0 +1,524 @@
+import Phaser from "phaser";
+
+import { GAME_HEIGHT, GAME_WIDTH } from "../config/gameConfig";
+import { THEME, colorHex } from "../config/theme";
+import { BUILD_COPY } from "../data/build";
+import { evaluateDesign } from "../sim/evaluator";
+import { createSimulation, tickSimulation } from "../sim/simulation";
+import type {
+  ComponentType,
+  DesignConnection,
+  Evaluation,
+  SimulationState,
+  SystemDesign,
+} from "../sim/types";
+import { progression } from "../state/progression";
+import { gameEvents } from "../systems/EventBus";
+import { BuildNode } from "../ui/BuildNode";
+import { Palette } from "../ui/Palette";
+
+type PlaceableType = Exclude<ComponentType, "client">;
+
+const CANVAS_LEFT = 270;
+const CANVAS_TOP = 116;
+const CANVAS_RIGHT = GAME_WIDTH - 24;
+const CANVAS_BOTTOM = GAME_HEIGHT - 74;
+const SIMULATION_SPEED = 2.4;
+
+export class BuildScene extends Phaser.Scene {
+  private readonly nodes = new Map<string, BuildNode>();
+  private connections: DesignConnection[] = [];
+  private nextNodeId = 1;
+  private wireGraphics!: Phaser.GameObjects.Graphics;
+  private activeWireFrom?: string;
+  private activePointer?: Phaser.Input.Pointer;
+  private simulation?: SimulationState;
+  private running = false;
+  private statsText!: Phaser.GameObjects.Text;
+  private phaseText!: Phaser.GameObjects.Text;
+  private runButton!: Phaser.GameObjects.Container;
+  private trafficDots: Phaser.GameObjects.Arc[] = [];
+  private outcomePanel?: Phaser.GameObjects.Container;
+
+  constructor() {
+    super("BuildScene");
+  }
+
+  create(): void {
+    this.input.mouse?.disableContextMenu();
+    this.cameras.main.setBackgroundColor(THEME.colors.ink);
+    this.createChrome();
+    this.wireGraphics = this.add.graphics().setDepth(5);
+    new Palette(this, 18, 108, (type, x, y) => this.addComponent(type, x, y));
+
+    const client = this.createNode("client", "client", 370, 350, true);
+    this.bindOutputPort(client);
+    this.drawConnections();
+
+    this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
+      if (!this.activeWireFrom) return;
+      this.activePointer = pointer;
+      this.drawConnections();
+    });
+    this.input.on("pointerup", () => {
+      this.time.delayedCall(0, () => {
+        this.activeWireFrom = undefined;
+        this.activePointer = undefined;
+        this.drawConnections();
+      });
+    });
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.input.removeAllListeners();
+    });
+  }
+
+  update(_time: number, deltaMs: number): void {
+    if (!this.running || !this.simulation) return;
+    this.simulation = tickSimulation(
+      this.simulation,
+      this.toDesign(),
+      (deltaMs / 1000) * SIMULATION_SPEED,
+    );
+    this.renderSimulation();
+    if (this.simulation.outcome !== "running") {
+      this.running = false;
+      this.showOutcome(evaluateDesign(this.toDesign()));
+    }
+  }
+
+  private createChrome(): void {
+    this.add
+      .rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, THEME.colors.ink)
+      .setOrigin(0);
+    this.add
+      .rectangle(0, 0, GAME_WIDTH, 88, THEME.colors.panelDark)
+      .setOrigin(0);
+    this.add.text(24, 18, BUILD_COPY.title, {
+      color: colorHex(THEME.colors.white),
+      fontFamily: THEME.fonts.mono,
+      fontSize: "25px",
+      fontStyle: "bold",
+    });
+    this.add.text(24, 52, BUILD_COPY.subtitle, {
+      color: colorHex(THEME.colors.successLight),
+      fontFamily: THEME.fonts.family,
+      fontSize: "15px",
+    });
+    this.add
+      .text(GAME_WIDTH - 34, 22, "×", {
+        color: colorHex(THEME.colors.white),
+        fontFamily: THEME.fonts.family,
+        fontSize: "34px",
+      })
+      .setOrigin(1, 0)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerup", () => this.closeBuild());
+
+    this.add
+      .rectangle(
+        CANVAS_LEFT,
+        CANVAS_TOP,
+        CANVAS_RIGHT - CANVAS_LEFT,
+        CANVAS_BOTTOM - CANVAS_TOP,
+        THEME.colors.paper,
+      )
+      .setOrigin(0)
+      .setStrokeStyle(3, THEME.colors.officeWall);
+    this.add
+      .grid(
+        CANVAS_LEFT,
+        CANVAS_TOP,
+        CANVAS_RIGHT - CANVAS_LEFT,
+        CANVAS_BOTTOM - CANVAS_TOP,
+        32,
+        32,
+        THEME.colors.paper,
+        0,
+        THEME.colors.officeWall,
+        0.14,
+      )
+      .setOrigin(0);
+
+    this.statsText = this.add.text(CANVAS_LEFT + 18, 94, "READY", {
+      color: colorHex(THEME.colors.successLight),
+      fontFamily: THEME.fonts.mono,
+      fontSize: "14px",
+    });
+    this.phaseText = this.add
+      .text(CANVAS_RIGHT - 18, 94, BUILD_COPY.remove, {
+        color: colorHex(THEME.colors.white),
+        fontFamily: THEME.fonts.family,
+        fontSize: "13px",
+      })
+      .setOrigin(1, 0);
+
+    this.runButton = this.createButton(
+      GAME_WIDTH - 222,
+      GAME_HEIGHT - 45,
+      396,
+      48,
+      BUILD_COPY.run,
+      THEME.colors.success,
+      () => this.runStressTest(),
+    );
+  }
+
+  private addComponent(type: PlaceableType, x: number, y: number): void {
+    if (this.running) return;
+    const existing = [...this.nodes.values()].filter(
+      (node) => node.componentType === type,
+    ).length;
+    const limit = type === "loadBalancer" ? 1 : 5;
+    if (existing >= limit) {
+      this.showConsoleMessage(BUILD_COPY.paletteFull);
+      return;
+    }
+    const id = `${type}-${this.nextNodeId++}`;
+    const node = this.createNode(
+      id,
+      type,
+      Phaser.Math.Clamp(x, CANVAS_LEFT + 90, CANVAS_RIGHT - 90),
+      Phaser.Math.Clamp(y, CANVAS_TOP + 60, CANVAS_BOTTOM - 60),
+    );
+    this.bindNodeInteractions(node);
+    this.bindInputPort(node);
+    if (node.outputPort) this.bindOutputPort(node);
+  }
+
+  private createNode(
+    id: string,
+    type: ComponentType,
+    x: number,
+    y: number,
+    fixed = false,
+  ): BuildNode {
+    const node = new BuildNode(this, id, type, x, y, fixed);
+    this.nodes.set(id, node);
+    return node;
+  }
+
+  private bindNodeInteractions(node: BuildNode): void {
+    node.on(
+      "drag",
+      (_pointer: Phaser.Input.Pointer, dragX: number, dragY: number) => {
+        if (this.running) return;
+        node.setPosition(
+          Phaser.Math.Clamp(dragX, CANVAS_LEFT + 90, CANVAS_RIGHT - 90),
+          Phaser.Math.Clamp(dragY, CANVAS_TOP + 60, CANVAS_BOTTOM - 60),
+        );
+        this.drawConnections();
+      },
+    );
+    node.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      if (pointer.rightButtonDown() && !this.running) {
+        this.removeNode(node.nodeId);
+      }
+    });
+  }
+
+  private bindOutputPort(node: BuildNode): void {
+    node.outputPort?.on(
+      "pointerdown",
+      (
+        pointer: Phaser.Input.Pointer,
+        _localX: number,
+        _localY: number,
+        event: Phaser.Types.Input.EventData,
+      ) => {
+        event.stopPropagation();
+        if (this.running) return;
+        this.activeWireFrom = node.nodeId;
+        this.activePointer = pointer;
+        this.drawConnections();
+      },
+    );
+  }
+
+  private bindInputPort(node: BuildNode): void {
+    node.inputPort?.on(
+      "pointerup",
+      (
+        _pointer: Phaser.Input.Pointer,
+        _localX: number,
+        _localY: number,
+        event: Phaser.Types.Input.EventData,
+      ) => {
+        event.stopPropagation();
+        if (!this.activeWireFrom || this.running) return;
+        this.tryConnect(this.activeWireFrom, node.nodeId);
+        this.activeWireFrom = undefined;
+        this.activePointer = undefined;
+        this.drawConnections();
+      },
+    );
+  }
+
+  private tryConnect(from: string, to: string): void {
+    const fromNode = this.nodes.get(from);
+    const toNode = this.nodes.get(to);
+    if (!fromNode || !toNode || from === to) return;
+    const valid =
+      (fromNode.componentType === "client" &&
+        (toNode.componentType === "loadBalancer" ||
+          toNode.componentType === "server")) ||
+      (fromNode.componentType === "loadBalancer" &&
+        toNode.componentType === "server");
+    if (!valid) {
+      this.showConsoleMessage(BUILD_COPY.invalidConnection);
+      return;
+    }
+    if (
+      this.connections.some(
+        (connection) => connection.from === from && connection.to === to,
+      )
+    ) {
+      this.showConsoleMessage(BUILD_COPY.duplicateConnection);
+      return;
+    }
+    this.connections.push({ from, to });
+  }
+
+  private removeNode(id: string): void {
+    const node = this.nodes.get(id);
+    if (!node || node.componentType === "client") return;
+    this.connections = this.connections.filter(
+      (connection) => connection.from !== id && connection.to !== id,
+    );
+    node.destroy();
+    this.nodes.delete(id);
+    this.drawConnections();
+  }
+
+  private drawConnections(): void {
+    if (!this.wireGraphics) return;
+    this.wireGraphics.clear();
+    this.wireGraphics.lineStyle(5, THEME.colors.officeWall, 0.85);
+    for (const connection of this.connections) {
+      const from = this.nodes.get(connection.from);
+      const to = this.nodes.get(connection.to);
+      if (!from || !to) continue;
+      this.drawWire(from.x + 76, from.y, to.x - 76, to.y);
+    }
+    if (this.activeWireFrom && this.activePointer) {
+      const from = this.nodes.get(this.activeWireFrom);
+      if (from) {
+        this.wireGraphics.lineStyle(4, THEME.colors.warning, 0.9);
+        this.drawWire(
+          from.x + 76,
+          from.y,
+          this.activePointer.x,
+          this.activePointer.y,
+        );
+      }
+    }
+  }
+
+  private drawWire(
+    startX: number,
+    startY: number,
+    endX: number,
+    endY: number,
+  ): void {
+    const midpoint = (startX + endX) / 2;
+    const path = new Phaser.Curves.Path(startX, startY);
+    path.cubicBezierTo(endX, endY, midpoint, startY, midpoint, endY);
+    path.draw(this.wireGraphics);
+  }
+
+  private runStressTest(): void {
+    if (this.running || this.outcomePanel) return;
+    const design = this.toDesign();
+    const evaluation = evaluateDesign(design);
+    this.resetNodeStatuses();
+    if (evaluation.id === "invalid") {
+      this.showOutcome(evaluation);
+      return;
+    }
+
+    this.simulation = createSimulation(design);
+    this.running = true;
+    this.runButton.setAlpha(0.45);
+    this.phaseText.setText("STRESS SCHEDULE ACTIVE");
+    this.createTrafficDots();
+  }
+
+  private renderSimulation(): void {
+    if (!this.simulation) return;
+    const state = this.simulation;
+    this.statsText.setText(
+      `${state.incomingRps.toFixed(0)} RPS  //  ERRORS ${(state.errorRate * 100).toFixed(1)}%`,
+    );
+    this.phaseText.setText(
+      `${state.phaseId.toUpperCase()}  ${(state.phaseProgress * 100).toFixed(0)}%`,
+    );
+    state.servers.forEach((server) => {
+      this.nodes.get(server.id)?.setServerStatus(server.health, server.loadRps);
+    });
+    this.nodes
+      .get("client")
+      ?.outputPort?.setFillStyle(
+        state.errorRate > 0.01 ? THEME.colors.alert : THEME.colors.success,
+      );
+
+    this.trafficDots.forEach((dot, index) => {
+      const connection = this.connections[index];
+      if (!connection) return;
+      const from = this.nodes.get(connection.from);
+      const to = this.nodes.get(connection.to);
+      if (!from || !to) return;
+      const progress = (state.elapsedSeconds * 0.75 + index * 0.22) % 1;
+      dot.setPosition(
+        Phaser.Math.Linear(from.x + 76, to.x - 76, progress),
+        Phaser.Math.Linear(from.y, to.y, progress),
+      );
+      dot.setFillStyle(
+        state.errorRate > 0.01 ? THEME.colors.alert : THEME.colors.success,
+      );
+    });
+  }
+
+  private showOutcome(evaluation: Evaluation): void {
+    this.destroyTrafficDots();
+    this.runButton.setAlpha(1);
+    if (evaluation.quality !== "failed") {
+      progression.completeFloor(1, evaluation.quality, evaluation.debtNotes);
+      gameEvents.emit("progression:updated", progression.snapshot);
+    }
+
+    const panel = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT / 2);
+    panel.setDepth(200);
+    const scrim = this.add
+      .rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, THEME.colors.ink, 0.65)
+      .setInteractive();
+    const accent =
+      evaluation.quality === "canonical"
+        ? THEME.colors.success
+        : evaluation.quality === "partial"
+          ? THEME.colors.warning
+          : THEME.colors.alert;
+    const card = this.add
+      .rectangle(0, 0, 650, 320, THEME.colors.panel)
+      .setStrokeStyle(6, accent);
+    const quality = this.add
+      .text(0, -112, evaluation.quality.toUpperCase(), {
+        color: colorHex(accent),
+        fontFamily: THEME.fonts.mono,
+        fontSize: "17px",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5);
+    const title = this.add
+      .text(0, -72, evaluation.title, {
+        color: colorHex(THEME.colors.ink),
+        fontFamily: THEME.fonts.family,
+        fontSize: "31px",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5);
+    const message = this.add
+      .text(0, 5, evaluation.message, {
+        align: "center",
+        color: colorHex(THEME.colors.ink),
+        fontFamily: THEME.fonts.family,
+        fontSize: "19px",
+        lineSpacing: 5,
+        wordWrap: { width: 560 },
+      })
+      .setOrigin(0.5);
+    const button = this.createButton(
+      0,
+      112,
+      310,
+      52,
+      evaluation.quality === "failed" ? BUILD_COPY.edit : BUILD_COPY.close,
+      accent,
+      () => {
+        if (evaluation.quality === "failed") {
+          panel.destroy();
+          this.outcomePanel = undefined;
+          this.phaseText.setText(BUILD_COPY.remove);
+          this.statsText.setText("READY");
+          this.resetNodeStatuses();
+        } else {
+          this.closeBuild();
+        }
+      },
+    );
+    panel.add([scrim, card, quality, title, message, button]);
+    this.outcomePanel = panel;
+  }
+
+  private createButton(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    label: string,
+    color: number,
+    onClick: () => void,
+  ): Phaser.GameObjects.Container {
+    const button = this.add.container(x, y);
+    const background = this.add
+      .rectangle(0, 0, width, height, color)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerup", onClick);
+    const text = this.add
+      .text(0, 0, label, {
+        color: colorHex(THEME.colors.white),
+        fontFamily: THEME.fonts.mono,
+        fontSize: "16px",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5);
+    button.add([background, text]);
+    return button;
+  }
+
+  private createTrafficDots(): void {
+    this.destroyTrafficDots();
+    this.trafficDots = this.connections.map(() =>
+      this.add.circle(0, 0, 7, THEME.colors.success).setDepth(30),
+    );
+  }
+
+  private destroyTrafficDots(): void {
+    this.trafficDots.forEach((dot) => dot.destroy());
+    this.trafficDots = [];
+  }
+
+  private resetNodeStatuses(): void {
+    this.nodes.forEach((node) => node.resetStatus());
+  }
+
+  private showConsoleMessage(message: string): void {
+    this.statsText.setColor(colorHex(THEME.colors.warning)).setText(message);
+    this.time.delayedCall(2200, () => {
+      if (!this.running && this.statsText.active) {
+        this.statsText
+          .setColor(colorHex(THEME.colors.successLight))
+          .setText("READY");
+      }
+    });
+  }
+
+  private toDesign(): SystemDesign {
+    return {
+      nodes: [...this.nodes.values()].map((node) => ({
+        id: node.nodeId,
+        type: node.componentType,
+        x: node.x,
+        y: node.y,
+      })),
+      connections: this.connections.map((connection) => ({ ...connection })),
+    };
+  }
+
+  private closeBuild(): void {
+    this.running = false;
+    this.destroyTrafficDots();
+    this.scene.stop();
+    this.scene.resume("FloorScene");
+    gameEvents.emit("build:closed");
+  }
+}

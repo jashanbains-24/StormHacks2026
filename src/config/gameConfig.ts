@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 
+import { BuildScene } from "../scenes/BuildScene";
 import { BootScene } from "../scenes/BootScene";
 import { FloorScene } from "../scenes/FloorScene";
 import { PreloadScene } from "../scenes/PreloadScene";
@@ -27,5 +28,5 @@ export const createGameConfig = (
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [BootScene, PreloadScene, FloorScene, UIScene],
+  scene: [BootScene, PreloadScene, FloorScene, BuildScene, UIScene],
 });
