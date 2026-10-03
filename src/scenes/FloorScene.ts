@@ -131,19 +131,30 @@ export class FloorScene extends Phaser.Scene {
 
   private createAmbientNpcs(): void {
     for (const placement of AMBIENT_NPCS_BY_FLOOR[this.currentFloor] ?? []) {
+      const shouldPatrol =
+        placement.behavior.kind === "patrol" &&
+        !preferences.snapshot.reducedMotion;
       const npc = new Npc(this, placement.x, placement.y, placement.id, {
-        frame: placement.frame,
-        tint: placement.tint,
+        texture: placement.texture,
         flipX: placement.flipX,
-        animated: false,
+        animationKey: preferences.snapshot.reducedMotion
+          ? null
+          : `office-${placement.texture}-${
+              placement.behavior.kind === "desk" ? "type" : "walk"
+            }`,
+        staticBody: !shouldPatrol,
       });
-      if (!preferences.snapshot.reducedMotion) {
+      this.physics.add.collider(this.player, npc);
+      if (shouldPatrol && placement.behavior.kind === "patrol") {
         this.tweens.add({
           targets: npc,
-          y: npc.y - 2,
-          duration: 900 + Phaser.Math.Between(0, 350),
+          x: placement.behavior.toX,
+          y: placement.behavior.toY,
+          duration: placement.behavior.durationMs,
           yoyo: true,
           repeat: -1,
+          onYoyo: () => npc.toggleFlipX(),
+          onRepeat: () => npc.toggleFlipX(),
         });
       }
     }
@@ -195,6 +206,7 @@ export class FloorScene extends Phaser.Scene {
 
     if (this.currentFloor === 1) {
       const specialist = new Npc(this, 820, 340, "rhea");
+      this.physics.add.collider(this.player, specialist);
       this.add.text(770, 382, "Rhea Boot // SRE", {
         color: colorHex(THEME.colors.ink),
         fontFamily: THEME.fonts.family,

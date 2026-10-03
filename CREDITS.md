@@ -13,11 +13,12 @@ and teaching experience.
 
 ## Visual assets
 
-- Selected floor, wall, character, desk, computer, bookshelf, plant, and sofa
-  sprites from [Pixel Agents](https://github.com/pablodelucca/pixel-agents) by
-  Pablo De Lucca (MIT). Files were renamed, reduced to the subset used by the
-  game, scaled in Phaser, and placed into a new office layout. The upstream MIT
-  license is included at `public/assets/office/LICENSE.pixel-agents`.
+- Selected floor, wall, diverse character, desk, computer, seating, lounge,
+  storage, plant, and office-detail sprites from
+  [Pixel Agents](https://github.com/pablodelucca/pixel-agents) by Pablo De Lucca
+  (MIT). Files were renamed, reduced to the subset used by the game, scaled in
+  Phaser, and placed into a new office layout. The upstream MIT license is
+  included at `public/assets/office/LICENSE.pixel-agents`.
 - Pixel Agents notes that its character sheets are based on
   [Metro City](https://jik-a-4.itch.io/metrocity-free-topdown-character-pack)
   by JIK-A-4.

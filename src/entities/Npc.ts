@@ -1,10 +1,11 @@
 import Phaser from "phaser";
 
 interface NpcOptions {
+  texture?: string;
   frame?: number;
-  tint?: number;
   flipX?: boolean;
-  animated?: boolean;
+  animationKey?: string | null;
+  staticBody?: boolean;
 }
 
 export class Npc extends Phaser.Physics.Arcade.Sprite {
@@ -15,13 +16,21 @@ export class Npc extends Phaser.Physics.Arcade.Sprite {
     public readonly npcId: string,
     options: NpcOptions = {},
   ) {
-    super(scene, x, y, "specialist", options.frame ?? 0);
+    super(scene, x, y, options.texture ?? "specialist", options.frame ?? 0);
     scene.add.existing(this);
-    scene.physics.add.existing(this, true);
-    this.setScale(2.5);
+    const staticBody = options.staticBody ?? true;
+    scene.physics.add.existing(this, staticBody);
+    this.setScale(2.8);
     this.setDepth(18);
     this.setFlipX(options.flipX ?? false);
-    if (options.tint !== undefined) this.setTint(options.tint);
-    if (options.animated ?? true) this.play("specialist-idle");
+    if (!staticBody) {
+      const body = this.body as Phaser.Physics.Arcade.Body;
+      body.setImmovable(true);
+      body.setSize(11, 14).setOffset(2, 16);
+      this.setCollideWorldBounds(true);
+    }
+    if (options.animationKey !== null) {
+      this.play(options.animationKey ?? "specialist-idle");
+    }
   }
 }

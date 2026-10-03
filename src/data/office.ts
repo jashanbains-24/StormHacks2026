@@ -1,76 +1,181 @@
 export interface OfficePropPlacement {
   x: number;
   y: number;
-  texture: "desk" | "computer" | "bookshelf" | "plant" | "sofa";
+  texture:
+    | "desk"
+    | "computer"
+    | "bookshelf"
+    | "plant"
+    | "large-plant"
+    | "sofa"
+    | "chair-front"
+    | "chair-back"
+    | "coffee-table"
+    | "whiteboard"
+    | "bin";
   scale?: number;
   collider?: boolean;
 }
+
+export type OfficeCharacterTexture =
+  | "player"
+  | "specialist"
+  | "ambient-1"
+  | "ambient-3"
+  | "ambient-4"
+  | "ambient-5";
+
+export const OFFICE_CHARACTER_TEXTURES: OfficeCharacterTexture[] = [
+  "player",
+  "specialist",
+  "ambient-1",
+  "ambient-3",
+  "ambient-4",
+  "ambient-5",
+];
+
+export type AmbientNpcBehavior =
+  | { kind: "desk" }
+  | {
+      kind: "patrol";
+      toX: number;
+      toY: number;
+      durationMs: number;
+    };
 
 export interface AmbientNpcPlacement {
   id: string;
   x: number;
   y: number;
-  frame: number;
-  tint: number;
+  texture: OfficeCharacterTexture;
+  behavior: AmbientNpcBehavior;
   flipX?: boolean;
 }
 
 export const OFFICE_PROPS: OfficePropPlacement[] = [
-  { x: 275, y: 180, texture: "desk" },
-  { x: 275, y: 159, texture: "computer", scale: 2.5, collider: false },
-  { x: 445, y: 180, texture: "desk" },
-  { x: 445, y: 159, texture: "computer", scale: 2.5, collider: false },
-  { x: 615, y: 180, texture: "desk" },
-  { x: 615, y: 159, texture: "computer", scale: 2.5, collider: false },
-  { x: 760, y: 558, texture: "sofa" },
-  { x: 880, y: 558, texture: "sofa" },
-  { x: 1010, y: 550, texture: "bookshelf" },
-  { x: 104, y: 132, texture: "plant" },
-  { x: 1115, y: 132, texture: "plant" },
-];
-
-const sharedOfficeNpcs: AmbientNpcPlacement[] = [
-  { id: "accounting-ava", x: 420, y: 330, frame: 0, tint: 0xe8b4b8 },
-  {
-    id: "support-milo",
-    x: 600,
-    y: 360,
-    frame: 14,
-    tint: 0xa8d8ea,
-    flipX: true,
-  },
-  { id: "product-sam", x: 725, y: 455, frame: 7, tint: 0xf4d35e },
-  {
-    id: "legal-noor",
-    x: 930,
-    y: 345,
-    frame: 14,
-    tint: 0xb8e0d2,
-  },
+  { x: 245, y: 170, texture: "desk", scale: 3.2 },
+  { x: 245, y: 149, texture: "computer", scale: 2.7, collider: false },
+  { x: 245, y: 220, texture: "chair-back", scale: 2.6 },
+  { x: 405, y: 170, texture: "desk", scale: 3.2 },
+  { x: 405, y: 149, texture: "computer", scale: 2.7, collider: false },
+  { x: 405, y: 220, texture: "chair-back", scale: 2.6 },
+  { x: 565, y: 170, texture: "desk", scale: 3.2 },
+  { x: 565, y: 149, texture: "computer", scale: 2.7, collider: false },
+  { x: 565, y: 220, texture: "chair-back", scale: 2.6 },
+  { x: 725, y: 170, texture: "desk", scale: 3.2 },
+  { x: 725, y: 149, texture: "computer", scale: 2.7, collider: false },
+  { x: 725, y: 220, texture: "chair-back", scale: 2.6 },
+  { x: 862, y: 125, texture: "whiteboard", scale: 3, collider: false },
+  { x: 828, y: 190, texture: "bin", scale: 2.6 },
+  { x: 765, y: 558, texture: "sofa", scale: 3.2 },
+  { x: 882, y: 558, texture: "sofa", scale: 3.2 },
+  { x: 823, y: 493, texture: "coffee-table", scale: 3 },
+  { x: 720, y: 493, texture: "chair-front", scale: 2.6 },
+  { x: 927, y: 493, texture: "chair-front", scale: 2.6 },
+  { x: 1018, y: 550, texture: "bookshelf", scale: 3.2 },
+  { x: 104, y: 132, texture: "large-plant", scale: 2.8 },
+  { x: 1090, y: 135, texture: "plant", scale: 3 },
+  { x: 1085, y: 565, texture: "bin", scale: 2.6 },
 ];
 
 export const AMBIENT_NPCS_BY_FLOOR: Record<number, AmbientNpcPlacement[]> = {
-  0: sharedOfficeNpcs,
-  1: [
-    ...sharedOfficeNpcs,
+  0: [
     {
-      id: "support-jules",
-      x: 845,
-      y: 475,
-      frame: 0,
-      tint: 0xd4a5ff,
+      id: "accounting-ava",
+      x: 245,
+      y: 226,
+      texture: "ambient-1",
+      behavior: { kind: "desk" },
+    },
+    {
+      id: "support-milo",
+      x: 405,
+      y: 226,
+      texture: "ambient-3",
+      behavior: { kind: "desk" },
+    },
+    {
+      id: "product-sam",
+      x: 565,
+      y: 226,
+      texture: "ambient-4",
+      behavior: { kind: "desk" },
+    },
+    {
+      id: "legal-noor",
+      x: 610,
+      y: 345,
+      texture: "ambient-5",
+      behavior: { kind: "patrol", toX: 760, toY: 395, durationMs: 2800 },
+    },
+    {
+      id: "facilities-finn",
+      x: 965,
+      y: 330,
+      texture: "specialist",
+      behavior: { kind: "patrol", toX: 1045, toY: 425, durationMs: 2400 },
       flipX: true,
     },
   ],
+  1: [
+    {
+      id: "accounting-ava",
+      x: 245,
+      y: 226,
+      texture: "ambient-1",
+      behavior: { kind: "desk" },
+    },
+    {
+      id: "support-milo",
+      x: 405,
+      y: 226,
+      texture: "ambient-3",
+      behavior: { kind: "desk" },
+    },
+    {
+      id: "product-sam",
+      x: 565,
+      y: 226,
+      texture: "ambient-4",
+      behavior: { kind: "desk" },
+    },
+    {
+      id: "support-jules",
+      x: 690,
+      y: 320,
+      texture: "ambient-5",
+      behavior: { kind: "patrol", toX: 735, toY: 430, durationMs: 2300 },
+    },
+    {
+      id: "facilities-finn",
+      x: 980,
+      y: 300,
+      texture: "player",
+      behavior: { kind: "patrol", toX: 1045, toY: 420, durationMs: 2600 },
+      flipX: true,
+    },
+    {
+      id: "design-drew",
+      x: 650,
+      y: 510,
+      texture: "ambient-3",
+      behavior: { kind: "patrol", toX: 560, toY: 450, durationMs: 2100 },
+    },
+  ],
   2: [
-    { id: "database-dev", x: 420, y: 470, frame: 7, tint: 0xa8d8ea },
+    {
+      id: "database-dev",
+      x: 405,
+      y: 226,
+      texture: "ambient-4",
+      behavior: { kind: "desk" },
+    },
     {
       id: "cache-casey",
-      x: 940,
-      y: 470,
-      frame: 14,
-      tint: 0xf4d35e,
-      flipX: true,
+      x: 850,
+      y: 440,
+      texture: "ambient-1",
+      behavior: { kind: "patrol", toX: 980, toY: 340, durationMs: 2800 },
     },
   ],
 };
