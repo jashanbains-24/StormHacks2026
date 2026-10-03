@@ -32,6 +32,7 @@ export const BUILD_COPY = {
   title: "INCIDENT ARCHITECTURE CONSOLE",
   subtitle: "Drag components onto the canvas. Drag an OUT port to an IN port.",
   run: "RUN STRESS TEST",
+  reset: "RESET DESIGN",
   edit: "EDIT DESIGN",
   close: "RETURN TO OFFICE",
   remove: "Right-click a component to remove it",

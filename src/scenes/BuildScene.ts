@@ -12,6 +12,7 @@ import type {
   SimulationState,
   SystemDesign,
 } from "../sim/types";
+import { buildDesignStore } from "../state/buildDesign";
 import { preferences } from "../state/preferences";
 import { progression } from "../state/progression";
 import { audio } from "../systems/AudioSystem";
@@ -54,8 +55,7 @@ export class BuildScene extends Phaser.Scene {
     this.wireGraphics = this.add.graphics().setDepth(5);
     new Palette(this, 18, 108, (type, x, y) => this.addComponent(type, x, y));
 
-    const client = this.createNode("client", "client", 370, 350, true);
-    this.bindOutputPort(client);
+    this.restoreDesign();
     this.drawConnections();
 
     this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
@@ -165,6 +165,15 @@ export class BuildScene extends Phaser.Scene {
       THEME.colors.success,
       () => this.runStressTest(),
     );
+    this.createButton(
+      390,
+      GAME_HEIGHT - 45,
+      210,
+      48,
+      BUILD_COPY.reset,
+      THEME.colors.alertDark,
+      () => this.resetDesign(),
+    );
   }
 
   private addComponent(type: PlaceableType, x: number, y: number): void {
@@ -177,7 +186,10 @@ export class BuildScene extends Phaser.Scene {
       this.showConsoleMessage(BUILD_COPY.paletteFull);
       return;
     }
-    const id = `${type}-${this.nextNodeId++}`;
+    let id: string;
+    do {
+      id = `${type}-${this.nextNodeId++}`;
+    } while (this.nodes.has(id));
     const node = this.createNode(
       id,
       type,
@@ -187,6 +199,7 @@ export class BuildScene extends Phaser.Scene {
     this.bindNodeInteractions(node);
     this.bindInputPort(node);
     if (node.outputPort) this.bindOutputPort(node);
+    this.persistDesign();
   }
 
   private createNode(
@@ -199,6 +212,35 @@ export class BuildScene extends Phaser.Scene {
     const node = new BuildNode(this, id, type, x, y, fixed);
     this.nodes.set(id, node);
     return node;
+  }
+
+  private restoreDesign(): void {
+    const saved = buildDesignStore.load();
+    const design: SystemDesign = saved ?? {
+      nodes: [{ id: "client", type: "client", x: 370, y: 350 }],
+      connections: [],
+    };
+
+    for (const savedNode of design.nodes) {
+      const fixed = savedNode.type === "client";
+      const node = this.createNode(
+        savedNode.id,
+        savedNode.type,
+        Phaser.Math.Clamp(savedNode.x, CANVAS_LEFT + 90, CANVAS_RIGHT - 90),
+        Phaser.Math.Clamp(savedNode.y, CANVAS_TOP + 60, CANVAS_BOTTOM - 60),
+        fixed,
+      );
+      if (!fixed) {
+        this.bindNodeInteractions(node);
+        this.bindInputPort(node);
+      }
+      if (node.outputPort) this.bindOutputPort(node);
+    }
+
+    this.connections = design.connections.filter(
+      (connection) =>
+        this.nodes.has(connection.from) && this.nodes.has(connection.to),
+    );
   }
 
   private bindNodeInteractions(node: BuildNode): void {
@@ -218,6 +260,7 @@ export class BuildScene extends Phaser.Scene {
         this.removeNode(node.nodeId);
       }
     });
+    node.on("dragend", () => this.persistDesign());
   }
 
   private bindOutputPort(node: BuildNode): void {
@@ -280,6 +323,7 @@ export class BuildScene extends Phaser.Scene {
       return;
     }
     this.connections.push({ from, to });
+    this.persistDesign();
   }
 
   private removeNode(id: string): void {
@@ -291,6 +335,7 @@ export class BuildScene extends Phaser.Scene {
     node.destroy();
     this.nodes.delete(id);
     this.drawConnections();
+    this.persistDesign();
   }
 
   private drawConnections(): void {
@@ -324,9 +369,12 @@ export class BuildScene extends Phaser.Scene {
     endY: number,
   ): void {
     const midpoint = (startX + endX) / 2;
-    const path = new Phaser.Curves.Path(startX, startY);
-    path.cubicBezierTo(endX, endY, midpoint, startY, midpoint, endY);
-    path.draw(this.wireGraphics);
+    this.wireGraphics.beginPath();
+    this.wireGraphics.moveTo(startX, startY);
+    this.wireGraphics.lineTo(midpoint, startY);
+    this.wireGraphics.lineTo(midpoint, endY);
+    this.wireGraphics.lineTo(endX, endY);
+    this.wireGraphics.strokePath();
   }
 
   private runStressTest(): void {
@@ -508,6 +556,31 @@ export class BuildScene extends Phaser.Scene {
 
   private resetNodeStatuses(): void {
     this.nodes.forEach((node) => node.resetStatus());
+  }
+
+  private resetDesign(): void {
+    if (this.running || this.outcomePanel) return;
+    this.nodes.forEach((node) => node.destroy());
+    this.nodes.clear();
+    this.connections = [];
+    this.nextNodeId = 1;
+    this.simulation = undefined;
+    this.crashCount = 0;
+    buildDesignStore.reset();
+
+    const client = this.createNode("client", "client", 370, 350, true);
+    this.bindOutputPort(client);
+    this.resetNodeStatuses();
+    this.statsText
+      .setColor(colorHex(THEME.colors.successLight))
+      .setText("READY");
+    this.phaseText.setText(BUILD_COPY.remove);
+    this.drawConnections();
+    this.persistDesign();
+  }
+
+  private persistDesign(): void {
+    buildDesignStore.save(this.toDesign());
   }
 
   private playCrashEffect(nodeId: string): void {
