@@ -74,6 +74,7 @@ export class PreloadScene extends Phaser.Scene {
       repeat: -1,
     });
 
+    this.scene.launch("UIScene");
     this.scene.start("FloorScene");
   }
 }

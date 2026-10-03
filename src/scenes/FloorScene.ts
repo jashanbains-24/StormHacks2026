@@ -14,7 +14,6 @@ export class FloorScene extends Phaser.Scene {
   private currentFloor = 0;
   private player!: Player;
   private interactions!: InteractionSystem;
-  private prompt!: Phaser.GameObjects.Text;
 
   constructor() {
     super("FloorScene");
@@ -39,13 +38,8 @@ export class FloorScene extends Phaser.Scene {
 
     this.interactions = new InteractionSystem(this, this.player);
     this.interactions.setInteractables(this.createFloorContent());
-    this.createInteractionPrompt();
 
     gameEvents.emit("floor:changed", this.currentFloor);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      gameEvents.removeAllListeners("interaction:available");
-      gameEvents.removeAllListeners("interaction:clear");
-    });
   }
 
   update(): void {
@@ -237,23 +231,5 @@ export class FloorScene extends Phaser.Scene {
     this.time.delayedCall(230, () =>
       this.scene.restart({ floor: destination }),
     );
-  }
-
-  private createInteractionPrompt(): void {
-    this.prompt = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 23, "", {
-        color: colorHex(THEME.colors.white),
-        backgroundColor: colorHex(THEME.colors.ink),
-        fontFamily: THEME.fonts.family,
-        fontSize: "18px",
-        padding: { x: 14, y: 8 },
-      })
-      .setOrigin(0.5, 1)
-      .setDepth(100);
-    gameEvents.on("interaction:available", (label: string) => {
-      this.prompt.setText(`[E] ${label}`).setVisible(true);
-    });
-    gameEvents.on("interaction:clear", () => this.prompt.setVisible(false));
-    this.prompt.setVisible(false);
   }
 }

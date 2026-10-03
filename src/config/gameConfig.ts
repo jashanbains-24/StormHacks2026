@@ -3,6 +3,7 @@ import Phaser from "phaser";
 import { BootScene } from "../scenes/BootScene";
 import { FloorScene } from "../scenes/FloorScene";
 import { PreloadScene } from "../scenes/PreloadScene";
+import { UIScene } from "../scenes/UIScene";
 import { THEME } from "./theme";
 
 export const GAME_WIDTH = 1280;
@@ -26,5 +27,5 @@ export const createGameConfig = (
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [BootScene, PreloadScene, FloorScene],
+  scene: [BootScene, PreloadScene, FloorScene, UIScene],
 });
