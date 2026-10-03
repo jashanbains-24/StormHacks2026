@@ -12,7 +12,18 @@ export interface OfficePropPlacement {
     | "chair-back"
     | "coffee-table"
     | "whiteboard"
-    | "bin";
+    | "bin"
+    | "double-bookshelf"
+    | "small-table"
+    | "cushioned-chair-front"
+    | "cushioned-chair-back"
+    | "clock"
+    | "coffee"
+    | "cactus"
+    | "large-painting"
+    | "small-painting"
+    | "meeting-table"
+    | "cushioned-bench";
   scale?: number;
   collider?: boolean;
 }
@@ -66,7 +77,25 @@ export const OFFICE_PROPS: OfficePropPlacement[] = [
   { x: 725, y: 149, texture: "computer", scale: 2.7, collider: false },
   { x: 725, y: 220, texture: "chair-back", scale: 2.6 },
   { x: 862, y: 125, texture: "whiteboard", scale: 3, collider: false },
+  { x: 955, y: 112, texture: "large-painting", scale: 3, collider: false },
+  { x: 1015, y: 112, texture: "small-painting", scale: 3, collider: false },
+  { x: 780, y: 112, texture: "clock", scale: 2.8, collider: false },
   { x: 828, y: 190, texture: "bin", scale: 2.6 },
+  { x: 1000, y: 238, texture: "small-table", scale: 3.2 },
+  { x: 1000, y: 205, texture: "coffee", scale: 3, collider: false },
+  { x: 1045, y: 218, texture: "cactus", scale: 2.8 },
+  { x: 948, y: 260, texture: "cushioned-chair-front", scale: 3 },
+  { x: 1052, y: 270, texture: "cushioned-chair-front", scale: 3 },
+  { x: 465, y: 430, texture: "meeting-table", scale: 3.8 },
+  { x: 405, y: 430, texture: "meeting-table", scale: 3.8 },
+  { x: 405, y: 350, texture: "cushioned-chair-back", scale: 3 },
+  { x: 465, y: 350, texture: "cushioned-chair-back", scale: 3 },
+  { x: 405, y: 510, texture: "cushioned-chair-front", scale: 3 },
+  { x: 465, y: 510, texture: "cushioned-chair-front", scale: 3 },
+  { x: 555, y: 520, texture: "cushioned-bench", scale: 3 },
+  { x: 117, y: 500, texture: "double-bookshelf", scale: 3.4 },
+  { x: 117, y: 545, texture: "double-bookshelf", scale: 3.4 },
+  { x: 112, y: 590, texture: "bookshelf", scale: 3.1 },
   { x: 765, y: 558, texture: "sofa", scale: 3.2 },
   { x: 882, y: 558, texture: "sofa", scale: 3.2 },
   { x: 823, y: 493, texture: "coffee-table", scale: 3 },

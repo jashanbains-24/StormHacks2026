@@ -57,6 +57,23 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("coffee-table", "furniture/coffee-table.png");
     this.load.image("whiteboard", "furniture/whiteboard.png");
     this.load.image("bin", "furniture/bin.png");
+    this.load.image("double-bookshelf", "furniture/double-bookshelf.png");
+    this.load.image("small-table", "furniture/small-table.png");
+    this.load.image(
+      "cushioned-chair-front",
+      "furniture/cushioned-chair-front.png",
+    );
+    this.load.image(
+      "cushioned-chair-back",
+      "furniture/cushioned-chair-back.png",
+    );
+    this.load.image("clock", "furniture/clock.png");
+    this.load.image("coffee", "furniture/coffee.png");
+    this.load.image("cactus", "furniture/cactus.png");
+    this.load.image("large-painting", "furniture/large-painting.png");
+    this.load.image("small-painting", "furniture/small-painting.png");
+    this.load.image("meeting-table", "furniture/meeting-table.png");
+    this.load.image("cushioned-bench", "furniture/cushioned-bench.png");
   }
 
   create(): void {
