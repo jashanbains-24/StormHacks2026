@@ -51,4 +51,15 @@ describe("ProgressionStore", () => {
     expect(restored.snapshot.floorResults[1]?.quality).toBe("canonical");
     expect(restored.wasCompletedThisSession(1)).toBe(false);
   });
+
+  it("distinguishes a tech-debt result from a canonical resolution", () => {
+    const store = new ProgressionStore(new MemoryStorage());
+    store.completeFloor(1, "partial", ["No spare capacity."]);
+
+    expect(store.wasCompletedThisSession(1)).toBe(true);
+    expect(store.wasCanonicallyCompletedThisSession(1)).toBe(false);
+
+    store.completeFloor(1, "canonical", []);
+    expect(store.wasCanonicallyCompletedThisSession(1)).toBe(true);
+  });
 });

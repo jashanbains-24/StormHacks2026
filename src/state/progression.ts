@@ -31,7 +31,7 @@ const browserStorage = (): StorageLike | undefined => {
 
 export class ProgressionStore {
   private state: ProgressionState;
-  private readonly completedInSession = new Set<number>();
+  private readonly sessionResults = new Map<number, DesignQuality>();
 
   constructor(private readonly storage = browserStorage()) {
     this.state = this.load();
@@ -42,7 +42,11 @@ export class ProgressionStore {
   }
 
   wasCompletedThisSession(floorId: number): boolean {
-    return this.completedInSession.has(floorId);
+    return this.sessionResults.has(floorId);
+  }
+
+  wasCanonicallyCompletedThisSession(floorId: number): boolean {
+    return this.sessionResults.get(floorId) === "canonical";
   }
 
   completeFloor(
@@ -63,14 +67,14 @@ export class ProgressionStore {
         },
       },
     };
-    this.completedInSession.add(floorId);
+    this.sessionResults.set(floorId, quality);
     this.persist();
     return this.snapshot;
   }
 
   reset(): void {
     this.state = structuredClone(DEFAULT_PROGRESSION);
-    this.completedInSession.clear();
+    this.sessionResults.clear();
     this.storage?.removeItem(STORAGE_KEY);
   }
 

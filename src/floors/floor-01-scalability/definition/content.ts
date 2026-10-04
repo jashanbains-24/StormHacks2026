@@ -27,10 +27,17 @@ export const onboardingDialogue: FloorDialogueLine[] = [
     id: "f01_rhea_onboarding_3",
     speaker: "specialist",
     speakerName: "Rhea Boot, SRE Lead",
-    text: "Use your workstation to design a safer request path, then run the stress test. Watch what happens when traffic rises and one machine fails.",
+    text: "Our capacity plan says two servers running together can carry the spike. Your workstation can provision up to five—but the stress test will take one machine offline, so two alone leave no spare. We need N+1 redundancy.",
+    glossaryIds: ["f01.capacity", "f01.redundancy"],
   },
   {
     id: "f01_rhea_onboarding_4",
+    speaker: "specialist",
+    speakerName: "Rhea Boot, SRE Lead",
+    text: "Design a request path that can use those two required servers and still keep one extra available. Then run the stress test and watch how traffic behaves during failure.",
+  },
+  {
+    id: "f01_rhea_onboarding_5",
     speaker: "specialist",
     speakerName: "Rhea Boot, SRE Lead",
     text: "If you get stuck, come back and talk to me. Each time you ask, I will give you a more specific hint.",

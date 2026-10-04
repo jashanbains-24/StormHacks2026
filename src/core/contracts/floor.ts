@@ -149,6 +149,7 @@ export interface FloorContext {
       order: number,
     ): { quality: DesignQuality; debtNotes: string[] } | undefined;
     completedThisSession(order: number): boolean;
+    canonicalThisSession(order: number): boolean;
     report(order: number, quality: DesignQuality, debtNotes: string[]): void;
   };
   readonly events: {

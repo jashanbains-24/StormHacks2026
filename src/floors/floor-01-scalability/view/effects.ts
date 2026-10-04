@@ -17,6 +17,7 @@ interface EmergencyModeInput {
 interface AlarmPoint {
   x: number;
   y: number;
+  inwardAngle: number;
 }
 
 export const resolveEmergencyMode = ({
@@ -40,14 +41,14 @@ export const createAlarmPath = (
   const top = 96;
   const bottom = height - 50;
   return [
-    { x: width * 0.32, y: top },
-    { x: width * 0.68, y: top },
-    { x: right, y: 160 },
-    { x: right, y: height - 160 },
-    { x: width * 0.68, y: bottom },
-    { x: width * 0.32, y: bottom },
-    { x: left, y: height - 160 },
-    { x: left, y: 160 },
+    { x: width * 0.27, y: top, inwardAngle: 90 },
+    { x: width * 0.5, y: top, inwardAngle: 90 },
+    { x: right, y: 160, inwardAngle: 180 },
+    { x: right, y: height - 160, inwardAngle: 180 },
+    { x: width * 0.68, y: bottom, inwardAngle: 270 },
+    { x: width * 0.32, y: bottom, inwardAngle: 270 },
+    { x: left, y: height - 160, inwardAngle: 0 },
+    { x: left, y: 160, inwardAngle: 0 },
   ];
 };
 
@@ -181,7 +182,7 @@ const createWallAlarms = (ctx: FloorContext, mode: F01EmergencyMode): void => {
   const path = createAlarmPath(ctx.scene.scale.width, ctx.scene.scale.height);
   const alarmColor =
     mode === "emergency" ? ctx.theme.colors.alert : ctx.theme.colors.success;
-  path.forEach(({ x, y }, index) => {
+  path.forEach(({ x, y, inwardAngle }, index) => {
     const glow = ctx.scene.add
       .circle(x, y, 26, alarmColor, mode === "emergency" ? 0.22 : 0.1)
       .setDepth(691)
@@ -189,6 +190,7 @@ const createWallAlarms = (ctx: FloorContext, mode: F01EmergencyMode): void => {
     const flare = ctx.scene.add
       .rectangle(x, y, 56, 7, alarmColor, 0.18)
       .setOrigin(0, 0.5)
+      .setAngle(inwardAngle)
       .setDepth(690)
       .setBlendMode("ADD")
       .setVisible(mode === "emergency");
@@ -202,12 +204,12 @@ const createWallAlarms = (ctx: FloorContext, mode: F01EmergencyMode): void => {
     ctx.scene.add.circle(x, y - 1, 7, alarmColor, 1).setDepth(695);
 
     if (mode !== "emergency" || ctx.preferences.reducedMotion) return;
-    flare.setAngle(index * 45);
     ctx.scene.tweens.add({
       targets: flare,
-      angle: flare.angle + 360,
-      duration: 920,
+      angle: { from: inwardAngle - 34, to: inwardAngle + 34 },
+      duration: 680,
       delay: index * 75,
+      yoyo: true,
       repeat: -1,
     });
     ctx.scene.tweens.add({
@@ -260,7 +262,7 @@ export const createEffects = (ctx: FloorContext): EffectsHandle => {
   const mode = resolveEmergencyMode({
     previewEnabled: ctx.preview.enabled,
     previewState: ctx.preview.state,
-    resolvedThisSession: ctx.progression.completedThisSession(ctx.floorOrder),
+    resolvedThisSession: ctx.progression.canonicalThisSession(ctx.floorOrder),
   });
   const runtime = getSceneRuntime(ctx);
 

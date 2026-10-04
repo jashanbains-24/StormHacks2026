@@ -6,6 +6,7 @@ export interface OfficePropPlacement {
   y: number;
   texture: string;
   scale?: number;
+  angle?: number;
   collider?: boolean;
   depthOffset?: number;
   collisionBox?: {
@@ -46,6 +47,7 @@ export const createOfficeLayout = (
     const image = ctx.scene.physics.add
       .staticImage(prop.x, prop.y, prop.texture)
       .setScale(prop.scale ?? 3)
+      .setAngle(prop.angle ?? 0)
       .setDepth(prop.y + (prop.depthOffset ?? 0));
     image.refreshBody();
     if (prop.collisionBox) {

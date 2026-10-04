@@ -94,7 +94,10 @@ describe("Floor 1 intern flow", () => {
   it("provides onboarding and result-specific teaching dialogue", () => {
     const canonical = outcomeDialogueFor("canonical");
     const underRedundant = outcomeDialogueFor("under-redundant");
-    expect(onboardingDialogue).toHaveLength(4);
+    expect(onboardingDialogue).toHaveLength(5);
+    expect(onboardingDialogue[2]?.text).toContain("two servers");
+    expect(onboardingDialogue[2]?.text).toContain("up to five");
+    expect(onboardingDialogue[2]?.text).toContain("N+1");
     expect(canonical[canonical.length - 1]?.text).toContain("elevator");
     expect(underRedundant[underRedundant.length - 1]?.text).toContain("N+1");
     expect(outcomeDialogueFor("unknown")).toEqual(
@@ -173,6 +176,12 @@ describe("Floor 1 intern flow", () => {
     });
   });
 
+  it("rotates every chair by 180 degrees", () => {
+    [...F01_OFFICE_PROPS, ...INTERN_WORKSTATION_PROPS]
+      .filter((prop) => prop.texture.includes("chair"))
+      .forEach((chair) => expect(chair.angle).toBe(180));
+  });
+
   it("uses explicit footprint hitboxes for collidable furniture", () => {
     [...F01_OFFICE_PROPS, ...INTERN_WORKSTATION_PROPS]
       .filter((prop) => prop.collider !== false)
@@ -237,5 +246,20 @@ describe("Floor 1 emergency presentation", () => {
       height - 160,
       160,
     ]);
+    expect(
+      path
+        .filter(({ y }) => y === 96)
+        .every(({ inwardAngle, x }) => inwardAngle === 90 && x < 700),
+    ).toBe(true);
+    expect(
+      path
+        .filter(({ x }) => x === width - 58)
+        .every(({ inwardAngle }) => inwardAngle === 180),
+    ).toBe(true);
+    expect(
+      path
+        .filter(({ x }) => x === 58)
+        .every(({ inwardAngle }) => inwardAngle === 0),
+    ).toBe(true);
   });
 });

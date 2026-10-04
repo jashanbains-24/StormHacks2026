@@ -116,6 +116,8 @@ export class FloorScene extends Phaser.Scene {
         resultFor: (order) => progression.snapshot.floorResults[order],
         completedThisSession: (order) =>
           progression.wasCompletedThisSession(order),
+        canonicalThisSession: (order) =>
+          progression.wasCanonicallyCompletedThisSession(order),
         report: (order, quality, debtNotes) => {
           progression.completeFloor(order, quality, debtNotes);
           gameEvents.emit("progression:updated", progression.snapshot);

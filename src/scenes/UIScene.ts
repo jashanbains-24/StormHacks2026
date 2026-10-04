@@ -60,7 +60,7 @@ export class UIScene extends Phaser.Scene {
       .setDepth(900);
     this.createEmergencyFrame();
     this.createAccessibilityControls();
-    if (progression.wasCompletedThisSession(1)) {
+    if (progression.wasCanonicallyCompletedThisSession(1)) {
       this.handleProgressionUpdated();
     }
 
@@ -212,7 +212,7 @@ export class UIScene extends Phaser.Scene {
 
   private handleBuildClosed(): void {
     this.objective.setVisible(true);
-    if (progression.wasCompletedThisSession(this.currentFloor)) {
+    if (progression.wasCanonicallyCompletedThisSession(this.currentFloor)) {
       this.scene.stop("FloorScene");
       this.scene.launch("FloorScene", { floor: this.currentFloor });
       this.scene.bringToTop();
@@ -284,6 +284,9 @@ export class UIScene extends Phaser.Scene {
   }
 
   private handleProgressionUpdated(): void {
+    if (!progression.wasCanonicallyCompletedThisSession(this.currentFloor)) {
+      return;
+    }
     this.alertTween?.stop();
     this.alertFrame.setAlpha(1).setStrokeStyle(3, THEME.colors.success, 0.8);
     this.objective.setText("Floor 2 unlocked — take the elevator");
