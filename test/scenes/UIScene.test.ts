@@ -39,6 +39,7 @@ vi.mock("phaser", async () => {
       return {};
     }
   }
+  const game = { events: new EventEmitter() };
   return {
     default: {
       Events: { EventEmitter },
@@ -60,6 +61,7 @@ vi.mock("phaser", async () => {
       },
       Scenes: { Events: { SHUTDOWN: "shutdown" } },
       Scene: class {
+        game = game;
         add = { text: vi.fn((_x, _y, text: string) => new Text(text)) };
         events = new EventEmitter();
         input = { keyboard: new Keyboard() };
@@ -70,6 +72,7 @@ vi.mock("phaser", async () => {
           launch: vi.fn(),
           pause: vi.fn(),
           bringToTop: vi.fn(),
+          setVisible: vi.fn(),
         };
       },
     },
@@ -119,10 +122,12 @@ import { gameEvents } from "../../src/systems/EventBus";
 import { InteractionSystem } from "../../src/systems/InteractionSystem";
 import type { Player } from "../../src/entities/Player";
 import { content } from "../../src/floors/floor-01-scalability/definition/content";
+import { beginModal } from "../../src/core/ui-kit/modal";
 
 describe("onboarding HUD lifecycle", () => {
   beforeEach(() => {
     gameEvents.removeAllListeners();
+    new UIScene().game.events.removeAllListeners();
     state.floorResults = {};
     state.canonicalThisSession = false;
     state.pressedE = false;
@@ -243,5 +248,29 @@ describe("onboarding HUD lifecycle", () => {
     };
     actions.onChoice("cache");
     expect(onChoose).toHaveBeenCalledExactlyOnceWith("cache");
+  });
+
+  it("hides HUD rendering and input until all modals close, including shutdown", () => {
+    const ui = new UIScene();
+    ui.create();
+    const firstOwner = new UIScene();
+    const secondOwner = new UIScene();
+    const closeFirst = beginModal(firstOwner);
+    const closeSecond = beginModal(secondOwner);
+    expect(ui.scene.setVisible).toHaveBeenLastCalledWith(false);
+    expect(ui.input.enabled).toBe(false);
+    const request = { handled: false };
+    gameEvents.emit("interaction:requested", request);
+    expect(request.handled).toBe(true);
+    gameEvents.emit("ui:objective", "Updated behind the modal");
+    closeFirst();
+    expect(ui.scene.setVisible).toHaveBeenLastCalledWith(false);
+    secondOwner.events.emit("shutdown");
+    expect(ui.scene.setVisible).toHaveBeenLastCalledWith(true);
+    expect(ui.input.enabled).toBe(true);
+    const visibilityChanges = vi.mocked(ui.scene.setVisible).mock.calls.length;
+    closeSecond();
+    expect(ui.scene.setVisible).toHaveBeenCalledTimes(visibilityChanges);
+    expect(firstOwner.events.listenerCount("shutdown")).toBe(0);
   });
 });

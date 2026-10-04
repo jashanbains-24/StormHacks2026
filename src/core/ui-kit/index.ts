@@ -1,5 +1,7 @@
 import type Phaser from "phaser";
 
+export { beginModal } from "./modal";
+
 export {
   createDefaultOfficeLayout,
   createOfficeLayout,

@@ -31,12 +31,15 @@ export class UIScene extends Phaser.Scene {
   private glossaryById: Record<string, FloorGlossaryEntry> = {};
   private tutorialRecruitName?: string;
   private tutorialWelcomeShown = false;
+  private readonly modals = new Set<object>();
 
   constructor() {
     super("UIScene");
   }
 
   create(): void {
+    this.modals.clear();
+    this.refreshModalVisibility();
     this.tutorialWelcomeShown = false;
     const tutorial = getFloorByOrder(0).module.definition.content;
     this.interactionPrompt = this.add
@@ -74,6 +77,8 @@ export class UIScene extends Phaser.Scene {
     gameEvents.on("dialogue:choice", this.showDialogueChoice, this);
     gameEvents.on("ui:toast", this.showToast, this);
     gameEvents.on("ui:objective", this.setObjective, this);
+    this.game.events.on("ui:modal-opened", this.handleModalOpened, this);
+    this.game.events.on("ui:modal-closed", this.handleModalClosed, this);
     gameEvents.on("build:open", this.openBuildScene, this);
     gameEvents.on("build:closed", this.handleBuildClosed, this);
     gameEvents.on("progression:updated", this.handleProgressionUpdated, this);
@@ -102,6 +107,10 @@ export class UIScene extends Phaser.Scene {
   }
 
   private handleInteractionRequest(request: InteractionRequest): void {
+    if (this.modals.size > 0) {
+      request.handled = true;
+      return;
+    }
     if (!this.dialogue.currentLine) return;
     request.handled = true;
     this.advanceDialogue();
@@ -230,6 +239,22 @@ export class UIScene extends Phaser.Scene {
 
   private showGlossary(entry: FloorGlossaryEntry): void {
     new GlossaryPopup(this, entry);
+  }
+
+  private handleModalOpened(token: object): void {
+    this.modals.add(token);
+    this.refreshModalVisibility();
+  }
+
+  private handleModalClosed(token: object): void {
+    this.modals.delete(token);
+    this.refreshModalVisibility();
+  }
+
+  private refreshModalVisibility(): void {
+    const visible = this.modals.size === 0;
+    this.scene.setVisible(visible);
+    this.input.enabled = visible;
   }
 
   private showToast(message: string): void {
@@ -368,6 +393,8 @@ export class UIScene extends Phaser.Scene {
     gameEvents.off("dialogue:choice", this.showDialogueChoice, this);
     gameEvents.off("ui:toast", this.showToast, this);
     gameEvents.off("ui:objective", this.setObjective, this);
+    this.game.events.off("ui:modal-opened", this.handleModalOpened, this);
+    this.game.events.off("ui:modal-closed", this.handleModalClosed, this);
     gameEvents.off("build:open", this.openBuildScene, this);
     gameEvents.off("build:closed", this.handleBuildClosed, this);
     gameEvents.off("progression:updated", this.handleProgressionUpdated, this);

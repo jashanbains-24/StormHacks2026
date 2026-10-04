@@ -3,6 +3,7 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../config/dimensions";
 import { THEME, colorHex } from "../config/theme";
 import { getFloorByOrder } from "../core/runtime/floorRegistry";
+import { beginModal } from "../core/ui-kit/modal";
 import { BUILD_COPY } from "../data/build";
 import { ONBOARDING_QUESTIONS } from "../data/onboarding";
 import { evaluateDesign } from "../sim/evaluator";
@@ -97,6 +98,7 @@ export class BuildScene extends Phaser.Scene {
   }
 
   create(): void {
+    beginModal(this);
     this.input.mouse?.disableContextMenu();
     this.cameras.main.setBackgroundColor(THEME.colors.ink);
     if (this.tutorialMode) {
@@ -163,15 +165,7 @@ export class BuildScene extends Phaser.Scene {
       fontFamily: THEME.fonts.family,
       fontSize: "15px",
     });
-    this.add
-      .text(GAME_WIDTH - 34, 18, "×", {
-        color: colorHex(THEME.colors.white),
-        fontFamily: THEME.fonts.family,
-        fontSize: "34px",
-      })
-      .setOrigin(1, 0)
-      .setInteractive({ useHandCursor: true })
-      .on("pointerup", () => this.closeBuild());
+    this.createCloseControl();
 
     this.add
       .rectangle(GAME_WIDTH / 2, 360, 760, 430, THEME.colors.panel)
@@ -415,19 +409,7 @@ export class BuildScene extends Phaser.Scene {
       fontFamily: THEME.fonts.family,
       fontSize: "15px",
     });
-    this.add
-      .rectangle(GAME_WIDTH - 43, 42, 56, 56, THEME.colors.panelDark, 0.01)
-      .setDepth(CLOSE_CONTROL_DEPTH)
-      .setInteractive({ useHandCursor: true })
-      .on("pointerup", () => this.closeBuild());
-    this.add
-      .text(GAME_WIDTH - 31, 16, "×", {
-        color: colorHex(THEME.colors.white),
-        fontFamily: THEME.fonts.family,
-        fontSize: "34px",
-      })
-      .setOrigin(1, 0)
-      .setDepth(CLOSE_CONTROL_DEPTH + 1);
+    this.createCloseControl();
 
     this.add
       .rectangle(
@@ -492,6 +474,22 @@ export class BuildScene extends Phaser.Scene {
       THEME.colors.alertDark,
       () => this.resetDesign(),
     );
+  }
+
+  private createCloseControl(): void {
+    this.add
+      .rectangle(GAME_WIDTH - 43, 42, 56, 56, THEME.colors.panelDark, 0.01)
+      .setDepth(CLOSE_CONTROL_DEPTH)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerup", () => this.closeBuild());
+    this.add
+      .text(GAME_WIDTH - 31, 16, "×", {
+        color: colorHex(THEME.colors.white),
+        fontFamily: THEME.fonts.family,
+        fontSize: "34px",
+      })
+      .setOrigin(1, 0)
+      .setDepth(CLOSE_CONTROL_DEPTH + 1);
   }
 
   private addComponent(type: PlaceableType, x: number, y: number): void {

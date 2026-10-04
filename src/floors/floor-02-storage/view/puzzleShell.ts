@@ -1,5 +1,6 @@
 import type { FloorContext } from "../../../core/contracts";
 import {
+  beginModal,
   colorHex,
   createTermFocusGroup,
   dismissTermCard,
@@ -33,6 +34,7 @@ export const mountPuzzleShell = (
   title: string,
   onClose: () => void,
 ): PuzzleShell => {
+  const releaseModal = beginModal(ctx.scene);
   const panel = { x: 140, y: 64, width: 1000, height: 590 };
   const root = ctx.scene.add.container(0, 0).setDepth(1600);
   const focus = createTermFocusGroup(ctx.scene);
@@ -84,6 +86,7 @@ export const mountPuzzleShell = (
     dismissTermCard();
     focus.destroy();
     root.destroy();
+    releaseModal();
     onClose();
   };
   close.on("pointerup", destroy);

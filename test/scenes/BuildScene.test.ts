@@ -4,13 +4,15 @@ const state = vi.hoisted(() => ({
   text: [] as string[],
   completeFloor: vi.fn(),
   clearAttempt: vi.fn(),
+  closeControl: undefined as undefined | { emit: (event: string) => unknown },
+  closeDepth: 0,
 }));
 
 vi.mock("phaser", async () => {
   const { default: EventEmitter } = await import("eventemitter3");
   class Visual extends EventEmitter {
     angle = 0;
-    constructor(text = "") {
+    constructor(private readonly text = "") {
       super();
       if (text) state.text.push(text);
     }
@@ -30,7 +32,9 @@ vi.mock("phaser", async () => {
     setVisible() {
       return this;
     }
-    setDepth() {
+    setDepth(depth: number) {
+      if (depth === 1000) state.closeControl = this;
+      if (this.text === "×") state.closeDepth = depth;
       return this;
     }
     setAngle() {
@@ -44,12 +48,14 @@ vi.mock("phaser", async () => {
     }
     destroy() {}
   }
+  const game = { events: new EventEmitter() };
   return {
     default: {
       Events: { EventEmitter },
       Scenes: { Events: { SHUTDOWN: "shutdown" } },
       Math: { Between: (min: number) => min },
       Scene: class {
+        game = game;
         events = new EventEmitter();
         input = new EventEmitter() as InstanceType<typeof EventEmitter> & {
           keyboard: InstanceType<typeof EventEmitter>;
@@ -120,6 +126,8 @@ describe("onboarding form keyboard flow", () => {
   beforeEach(() => {
     gameEvents.removeAllListeners();
     state.text = [];
+    state.closeControl = undefined;
+    state.closeDepth = 0;
     vi.clearAllMocks();
   });
 
@@ -190,5 +198,21 @@ describe("onboarding form keyboard flow", () => {
       "Preliminary question 1 of 3\nHow many of the 7 circles are red?",
     );
     expect(state.completeFloor).not.toHaveBeenCalled();
+  });
+
+  it("keeps the tutorial X above its outcome and closes through its hit area", () => {
+    const scene = new BuildScene();
+    const onClosed = vi.fn();
+    gameEvents.on("build:closed", onClosed);
+    startQuestions(scene);
+    for (const answer of ["4", "10", "html"]) {
+      type(scene, answer);
+      enter(scene);
+    }
+    expect(state.closeDepth).toBeGreaterThan(200);
+    state.closeControl!.emit("pointerup");
+    expect(scene.scene.stop).toHaveBeenCalledOnce();
+    expect(scene.scene.resume).toHaveBeenCalledWith("FloorScene");
+    expect(onClosed).toHaveBeenCalledOnce();
   });
 });
