@@ -2,6 +2,8 @@
 
 Owner scope: everything in this folder.
 
+Integrator merge notes for main live in `HANDOFF.md`.
+
 Canonical design: Client → Load Balancer → 3 Servers.
 
 ## Floor flow
