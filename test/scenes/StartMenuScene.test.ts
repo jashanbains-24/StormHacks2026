@@ -21,6 +21,7 @@ vi.mock("../../src/state/buildDesign", () => ({
 
 import { StartMenuScene } from "../../src/scenes/StartMenuScene";
 import { progression } from "../../src/state/progression";
+import { glossaryStore } from "../../src/state/glossary";
 import {
   buildDesignStore,
   tutorialBuildDesignStore,
@@ -32,6 +33,8 @@ describe("new game and saved game", () => {
     progression.completeFloor(0, "canonical", []);
     progression.completeFloor(1, "canonical", []);
     progression.confirmHandoff(1);
+    glossaryStore.reset();
+    glossaryStore.markOpened("f01.capacity");
     vi.clearAllMocks();
   });
 
@@ -51,10 +54,12 @@ describe("new game and saved game", () => {
         expect(progression.snapshot.floorResults).toEqual({});
         expect(buildDesignStore.reset).toHaveBeenCalledOnce();
         expect(tutorialBuildDesignStore.reset).toHaveBeenCalledOnce();
+        expect(glossaryStore.openedIds).toEqual([]);
       } else {
         expect(progression.snapshot).toEqual(saved);
         expect(buildDesignStore.reset).not.toHaveBeenCalled();
         expect(tutorialBuildDesignStore.reset).not.toHaveBeenCalled();
+        expect(glossaryStore.openedIds).toEqual(["f01.capacity"]);
       }
     },
   );

@@ -166,6 +166,32 @@ and cleanup on page changes and movement. Player saves were restored afterward.
 All 111 tests, type-check, production build, and floor validation pass. Changed
 files pass formatting; the full check retains the five existing warnings.
 
+## Shared persistent glossary
+
+The bottom-left glossary is now a shared scene above the world HUD, build
+consoles, elevator, and storage puzzles. All floors register their glossary data
+in a small state store; the existing inline term-card API records opened terms
+there. Terms retain their discovery order across floor travel, with floor labels,
+definitions, analogies, and real-world examples. New Game clears learned history;
+this history is held for the current game session, not persisted across refreshes.
+The former Floor 2-only glossary implementation has been removed.
+
+The panel measures wrapped term blocks and provides Previous/Next pages so long
+lists cannot cover the footer. X, Escape, or an outside click closes it. Opening
+it pauses active background scenes; closing resumes only those scenes, preserving
+the already-paused office behind a build console. Build palette instructions
+move slightly upward to reserve room for the persistent button.
+
+Live checks covered lobby and Floor 1 console visibility, native inline term
+discovery, cross-floor history, both Floor 2 puzzles, X/Escape, and navigation.
+Sam's puzzle remained interactive after closing the glossary and completed
+normally. All 23 registered terms fit at the normal font size across seven pages.
+Player progression was restored after fixtures; the browser console had no errors.
+The generic state/overlay tests cover discovery, reset, subscriptions, scene
+pausing, layering, and shutdown. All 115 tests, type-check, production build,
+and floor validation pass. Changed files pass formatting; the full check retains
+the five existing warnings.
+
 ## Remaining sequence
 
 The user added another UI pass, still one verified milestone at a time:
@@ -177,6 +203,6 @@ The user added another UI pass, still one verified milestone at a time:
 4. Give Floor 1 Floor 2's rich dialogue bubbles and inline hover/click term cards,
    replacing the glossary chips while preserving E and Next/Done (done).
 5. Share a persistent bottom-left glossary across floors and puzzle screens,
-   retaining opened terms while travelling and handling long lists.
+   retaining opened terms while travelling and handling long lists (done).
 6. Run the complete game flow, check for the teammate's newer main changes,
    integrate them as needed, and prepare the PR.

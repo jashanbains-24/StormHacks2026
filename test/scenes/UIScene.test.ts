@@ -191,7 +191,7 @@ describe("onboarding HUD lifecycle", () => {
     gameEvents.emit("build:closed");
 
     expect(ui.scene.stop).not.toHaveBeenCalled();
-    expect(ui.scene.launch).not.toHaveBeenCalled();
+    expect(ui.scene.launch).toHaveBeenCalledExactlyOnceWith("GlossaryScene");
     expect(state.speech).toHaveBeenCalledOnce();
   });
 

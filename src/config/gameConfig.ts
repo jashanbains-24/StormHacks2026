@@ -6,6 +6,7 @@ import { FloorScene } from "../core/runtime/FloorScene";
 import { PreloadScene } from "../scenes/PreloadScene";
 import { StartMenuScene } from "../scenes/StartMenuScene";
 import { UIScene } from "../scenes/UIScene";
+import { GlossaryScene } from "../scenes/GlossaryScene";
 import { GAME_HEIGHT, GAME_WIDTH } from "./dimensions";
 import { THEME } from "./theme";
 
@@ -34,5 +35,6 @@ export const createGameConfig = (
     FloorScene,
     BuildScene,
     UIScene,
+    GlossaryScene,
   ],
 });

@@ -3,6 +3,7 @@ import type Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../../config/dimensions";
 import { THEME, colorHex } from "../../config/theme";
 import type { FloorGlossaryEntry } from "../contracts";
+import { glossaryStore } from "../../state/glossary";
 
 type TermAnchor = Phaser.GameObjects.GameObject &
   Phaser.GameObjects.Components.GetBounds;
@@ -17,23 +18,13 @@ interface ActiveCard {
 }
 
 let activeCard: ActiveCard | undefined;
-const openedTerms = new Set<string>();
-const termListeners = new Set<() => void>();
-
-export const hasOpenedTerm = (id: string): boolean => openedTerms.has(id);
-
-export const markTermOpened = (id: string): void => {
-  if (openedTerms.has(id)) return;
-  openedTerms.add(id);
-  termListeners.forEach((listener) => listener());
-};
-
-export const openedTermIds = (): string[] => [...openedTerms];
-
-export const onTermsChanged = (listener: () => void): (() => void) => {
-  termListeners.add(listener);
-  return () => termListeners.delete(listener);
-};
+export const hasOpenedTerm = (id: string): boolean =>
+  glossaryStore.hasOpened(id);
+export const markTermOpened = (id: string): void =>
+  glossaryStore.markOpened(id);
+export const openedTermIds = (): string[] => glossaryStore.openedIds;
+export const onTermsChanged = (listener: () => void): (() => void) =>
+  glossaryStore.subscribe(listener);
 
 export const dismissTermCard = (): void => {
   if (!activeCard) return;

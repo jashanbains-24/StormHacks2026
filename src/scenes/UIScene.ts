@@ -25,6 +25,7 @@ import { Notification } from "../ui/Notification";
 import { SpeechBubble } from "../ui/SpeechBubble";
 import { TaskChecklist } from "../ui/TaskChecklist";
 import { TaskChecklistStore } from "../state/taskChecklist";
+import { glossaryStore } from "../state/glossary";
 
 export class UIScene extends Phaser.Scene {
   private readonly dialogue = new DialogueSystem();
@@ -45,6 +46,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.scene.launch("GlossaryScene");
     this.modals.clear();
     this.refreshModalVisibility();
     this.tutorialWelcomeShown = false;
@@ -259,6 +261,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   private showGlossary(entry: FloorGlossaryEntry): void {
+    glossaryStore.markOpened(entry.id);
     new GlossaryPopup(this, entry);
   }
 
@@ -410,6 +413,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   private removeListeners(): void {
+    this.scene.stop("GlossaryScene");
     gameEvents.off("interaction:available", this.showInteraction, this);
     gameEvents.off("interaction:clear", this.hideInteraction, this);
     gameEvents.off(

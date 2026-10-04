@@ -4,6 +4,7 @@ import { GAME_HEIGHT, GAME_WIDTH } from "../config/dimensions";
 import { THEME, colorHex } from "../config/theme";
 import { BACKGROUND_MUSIC_KEY } from "./PreloadScene";
 import { progression } from "../state/progression";
+import { glossaryStore } from "../state/glossary";
 import {
   buildDesignStore,
   tutorialBuildDesignStore,
@@ -412,6 +413,7 @@ export class StartMenuScene extends Phaser.Scene {
   private startGame(): void {
     if (this.hasStarted) return;
     progression.reset();
+    glossaryStore.reset();
     buildDesignStore.reset();
     tutorialBuildDesignStore.reset();
     this.launchGame();

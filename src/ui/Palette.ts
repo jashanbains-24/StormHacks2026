@@ -74,7 +74,7 @@ export class Palette extends Phaser.GameObjects.Container {
 
     const help = scene.add.text(
       20,
-      435,
+      400,
       tutorial
         ? "PORTS\n\nOUT → IN\n\nConnect SOURCE to every DESTINATION. CONNECTOR blocks are optional."
         : "PORTS\n\nOUT → IN\n\nWire users to a load balancer or server, then wire the balancer to servers.",

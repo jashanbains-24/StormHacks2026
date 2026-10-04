@@ -1,11 +1,5 @@
 import type { FloorContext } from "../../../core/contracts";
-import {
-  bindNearbyNameLabel,
-  colorHex,
-  openedTermIds,
-  onTermsChanged,
-  type UiContainer,
-} from "../../../core/ui-kit";
+import { bindNearbyNameLabel, colorHex } from "../../../core/ui-kit";
 import {
   applyIncidentChoice,
   beaconFor,
@@ -20,7 +14,6 @@ import {
   stalePriceDialogue,
   stalePriceStatus,
 } from "../definition/stalePriceDialogue";
-import { teachingTermById } from "../definition/terms";
 import { taskUpdatesForStep } from "../definition/tasks";
 import {
   celebrateMonitors,
@@ -366,92 +359,11 @@ export const createStalePriceIncident = (ctx: FloorContext): void => {
     });
   });
 
-  const glossaryButton = ctx.scene.add
-    .text(28, gameHeight - 78, "Glossary", {
-      color: colorHex(ctx.theme.colors.white),
-      backgroundColor: colorHex(ctx.theme.colors.ink),
-      fontFamily: ctx.theme.fonts.family,
-      fontSize: "14px",
-      fontStyle: "bold",
-      padding: { x: 8, y: 5 },
-    })
-    .setDepth(880)
-    .setInteractive({ useHandCursor: true });
-
-  let glossaryPanel: UiContainer | undefined;
-  const closeGlossary = (): void => {
-    glossaryPanel?.destroy();
-    glossaryPanel = undefined;
-  };
-  const openGlossary = (): void => {
-    if (glossaryPanel) {
-      closeGlossary();
-      return;
-    }
-    const ids = openedTermIds();
-    const blocks =
-      ids.length === 0
-        ? ["Open an ⓘ while you talk or solve a puzzle."]
-        : ids.flatMap((id) => {
-            const term = teachingTermById[id];
-            if (!term) return [];
-            const details = [term.definition, term.analogy];
-            if (term.realWorld) details.push(`Real world: ${term.realWorld}`);
-            return [`${term.title}\n${details.join("\n")}`];
-          });
-    const glossaryText = blocks.join("\n\n");
-    const height = Math.min(460, 88 + glossaryText.split("\n").length * 18);
-    const panel = ctx.scene.add.container(0, 0).setDepth(1750);
-    panel.add(
-      ctx.scene.add
-        .rectangle(28, 150, 420, height, ctx.theme.colors.panel)
-        .setOrigin(0)
-        .setStrokeStyle(4, ctx.theme.colors.ink),
-    );
-    panel.add(
-      ctx.scene.add.text(44, 164, "Glossary", {
-        color: colorHex(ctx.theme.colors.ink),
-        fontFamily: ctx.theme.fonts.family,
-        fontSize: "18px",
-        fontStyle: "bold",
-      }),
-    );
-    panel.add(
-      ctx.scene.add.text(44, 196, glossaryText, {
-        color: colorHex(ctx.theme.colors.ink),
-        fontFamily: ctx.theme.fonts.family,
-        fontSize: "13px",
-        wordWrap: { width: 380 },
-        lineSpacing: 3,
-      }),
-    );
-    const close = ctx.scene.add
-      .text(400, 156, "×", {
-        color: colorHex(ctx.theme.colors.muted),
-        fontFamily: ctx.theme.fonts.family,
-        fontSize: "24px",
-      })
-      .setInteractive({ useHandCursor: true })
-      .on("pointerup", closeGlossary);
-    panel.add(close);
-    glossaryPanel = panel;
-  };
-  glossaryButton.on("pointerup", openGlossary);
-  const unsubscribeGlossary = onTermsChanged(() => {
-    const count = openedTermIds().length;
-    glossaryButton.setText(count > 0 ? `Glossary ${count}` : "Glossary");
-  });
-
   ctx.addUpdater(() => {
     if (frozen) {
       ctx.player.setPosition(frozenAt.x, frozenAt.y);
       ctx.player.setVelocity(0, 0);
     }
-  });
-
-  ctx.scene.events.once("shutdown", () => {
-    unsubscribeGlossary();
-    closeGlossary();
   });
 
   applyState();
