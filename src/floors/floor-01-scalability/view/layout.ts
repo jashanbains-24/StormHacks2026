@@ -29,7 +29,7 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
   });
   ctx.scene.physics.add.collider(ctx.player, specialist);
   ctx.scene.add
-    .text(specialist.x, specialist.y - 65, "!", {
+    .text(specialist.x, specialist.y - 96, "!", {
       color: colorHex(ctx.theme.colors.ink),
       fontFamily: ctx.theme.fonts.mono,
       fontSize: "24px",
@@ -40,13 +40,14 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
     .setOrigin(0.5)
     .setDepth(601);
   ctx.scene.add
-    .text(specialist.x, specialist.y + 48, "Rhea Boot // SRE LEAD", {
+    .text(specialist.x, specialist.y - 54, "Rhea Boot // SRE LEAD", {
       color: colorHex(ctx.theme.colors.ink),
       fontFamily: ctx.theme.fonts.family,
       fontSize: "15px",
       backgroundColor: colorHex(ctx.theme.colors.panel),
       padding: { x: 7, y: 4 },
     })
+    .setOrigin(0.5, 1)
     .setDepth(600);
   ctx.addInteractable({
     id: "f01:specialist",
@@ -61,7 +62,7 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
       ctx.dialogue.showSpecialist();
       if (firstIntroduction) {
         ctx.hud.showToast(
-          "Intern access granted. Your workstation is down and to Rhea's right.",
+          "Intern access granted. Your workstation is the empty desk at the right end of the top row.",
         );
       }
       ctx.hud.setObjective(

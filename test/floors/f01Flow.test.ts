@@ -34,9 +34,34 @@ describe("Floor 1 intern flow", () => {
     );
   });
 
-  it("places Rhea before the intern workstation", () => {
+  it("places Rhea before the intern workstation in the player's path", () => {
     expect(RHEA_POSITION.x).toBeLessThan(INTERN_WORKSTATION.x);
-    expect(RHEA_POSITION.y).toBeLessThan(INTERN_WORKSTATION.y);
+  });
+
+  it("places the empty intern workstation beside the occupied desk row", () => {
+    const occupiedDesks = F01_OFFICE_PROPS.filter(
+      (prop) => prop.texture === "desk",
+    );
+    const internDesk = INTERN_WORKSTATION_PROPS.find(
+      (prop) => prop.texture === "desk",
+    );
+
+    expect(occupiedDesks).toHaveLength(3);
+    expect(internDesk?.y).toBe(occupiedDesks[0]?.y);
+    expect(internDesk?.x).toBeGreaterThan(
+      occupiedDesks[occupiedDesks.length - 1]?.x ?? 0,
+    );
+  });
+
+  it("keeps the meeting table shifted down and left", () => {
+    const meetingTables = F01_OFFICE_PROPS.filter(
+      (prop) => prop.texture === "meeting-table",
+    );
+
+    expect(meetingTables.map(({ x, y }) => [x, y])).toEqual([
+      [430, 465],
+      [560, 465],
+    ]);
   });
 
   it("seats exactly three employees facing their computers", () => {

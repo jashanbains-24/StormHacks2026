@@ -4,7 +4,7 @@ import type {
 } from "../../../core/ui-kit";
 
 export const RHEA_POSITION = { x: 178, y: 350 } as const;
-export const INTERN_WORKSTATION = { x: 275, y: 474 } as const;
+export const INTERN_WORKSTATION = { x: 725, y: 194 } as const;
 export const DIALOGUE_DISMISS_DISTANCE = 178;
 
 const deskCollision = {
@@ -68,10 +68,10 @@ export const F01_OFFICE_PROPS: OfficePropPlacement[] = [
     depthOffset: -38,
     collisionBox: chairCollision,
   },
-  { x: 735, y: 125, texture: "whiteboard", scale: 3, collider: false },
-  { x: 880, y: 112, texture: "large-painting", scale: 3, collider: false },
-  { x: 945, y: 112, texture: "small-painting", scale: 3, collider: false },
-  { x: 665, y: 112, texture: "clock", scale: 2.8, collider: false },
+  { x: 855, y: 125, texture: "whiteboard", scale: 3, collider: false },
+  { x: 955, y: 112, texture: "large-painting", scale: 3, collider: false },
+  { x: 1020, y: 112, texture: "small-painting", scale: 3, collider: false },
+  { x: 790, y: 112, texture: "clock", scale: 2.8, collider: false },
   {
     x: 825,
     y: 188,
@@ -109,43 +109,43 @@ export const F01_OFFICE_PROPS: OfficePropPlacement[] = [
     collisionBox: chairCollision,
   },
   {
-    x: 475,
-    y: 430,
+    x: 430,
+    y: 465,
     texture: "meeting-table",
     scale: 3,
     collisionBox: { width: 122, height: 72, offsetY: 4 },
   },
   {
-    x: 605,
-    y: 430,
+    x: 560,
+    y: 465,
     texture: "meeting-table",
     scale: 3,
     collisionBox: { width: 122, height: 72, offsetY: 4 },
   },
   {
-    x: 475,
-    y: 330,
+    x: 430,
+    y: 365,
     texture: "cushioned-chair-back",
     scale: 3,
     collisionBox: chairCollision,
   },
   {
-    x: 605,
-    y: 330,
+    x: 560,
+    y: 365,
     texture: "cushioned-chair-back",
     scale: 3,
     collisionBox: chairCollision,
   },
   {
-    x: 475,
-    y: 530,
+    x: 430,
+    y: 565,
     texture: "cushioned-chair-front",
     scale: 3,
     collisionBox: chairCollision,
   },
   {
-    x: 605,
-    y: 530,
+    x: 560,
+    y: 565,
     texture: "cushioned-chair-front",
     scale: 3,
     collisionBox: chairCollision,
