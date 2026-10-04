@@ -7,6 +7,7 @@ import {
 } from "../../src/floors/floor-01-scalability/definition/content";
 import {
   createAlarmPath,
+  fixtureRotationFor,
   resolveEmergencyMode,
 } from "../../src/floors/floor-01-scalability/view/effects";
 import {
@@ -176,10 +177,37 @@ describe("Floor 1 intern flow", () => {
     });
   });
 
-  it("rotates every chair by 180 degrees", () => {
-    [...F01_OFFICE_PROPS, ...INTERN_WORKSTATION_PROPS]
-      .filter((prop) => prop.texture.includes("chair"))
-      .forEach((chair) => expect(chair.angle).toBe(180));
+  it("keeps desk chairs original while other chairs remain rotated", () => {
+    const officeDeskChairs = F01_OFFICE_PROPS.filter(
+      (prop) =>
+        prop.texture === "chair-back" && [245, 405, 565].includes(prop.x),
+    );
+    const internChair = INTERN_WORKSTATION_PROPS.find((prop) =>
+      prop.texture.includes("chair"),
+    );
+    const otherChairs = F01_OFFICE_PROPS.filter(
+      (prop) =>
+        prop.texture.includes("chair") && !officeDeskChairs.includes(prop),
+    );
+
+    expect(officeDeskChairs).toHaveLength(3);
+    [...officeDeskChairs, internChair].forEach((chair) =>
+      expect(chair?.angle).toBe(0),
+    );
+    otherChairs.forEach((chair) => expect(chair.angle).toBe(180));
+  });
+
+  it("keeps side-desk and upper conference chairs close to their tables", () => {
+    const sideDeskChairs = F01_OFFICE_PROPS.filter(
+      (prop) => prop.x === 1000 && prop.texture.includes("chair"),
+    );
+    const upperConferenceChairs = F01_OFFICE_PROPS.filter(
+      (prop) =>
+        [430, 560].includes(prop.x) && prop.texture === "cushioned-chair-back",
+    );
+
+    expect(sideDeskChairs.map(({ y }) => y)).toEqual([193, 283]);
+    expect(upperConferenceChairs.map(({ y }) => y)).toEqual([385, 385]);
   });
 
   it("uses explicit footprint hitboxes for collidable furniture", () => {
@@ -261,5 +289,9 @@ describe("Floor 1 emergency presentation", () => {
         .filter(({ x }) => x === 58)
         .every(({ inwardAngle }) => inwardAngle === 0),
     ).toBe(true);
+    expect(fixtureRotationFor(90)).toBe(0);
+    expect(fixtureRotationFor(180)).toBe(90);
+    expect(fixtureRotationFor(270)).toBe(180);
+    expect(fixtureRotationFor(0)).toBe(-90);
   });
 });

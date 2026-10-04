@@ -52,6 +52,9 @@ export const createAlarmPath = (
   ];
 };
 
+export const fixtureRotationFor = (inwardAngle: number): number =>
+  inwardAngle - 90;
+
 const startNormalRoute = (
   ctx: FloorContext,
   { npc, plan }: RoamingNpcRuntime,
@@ -194,14 +197,21 @@ const createWallAlarms = (ctx: FloorContext, mode: F01EmergencyMode): void => {
       .setDepth(690)
       .setBlendMode("ADD")
       .setVisible(mode === "emergency");
+    const base = ctx.scene.add.rectangle(
+      0,
+      -10,
+      38,
+      9,
+      ctx.theme.colors.panelDark,
+    );
+    const dome = ctx.scene.add
+      .ellipse(0, 3, 30, 26, alarmColor, 0.82)
+      .setStrokeStyle(3, ctx.theme.colors.panelDark);
+    const core = ctx.scene.add.circle(0, 3, 7, alarmColor, 1);
     ctx.scene.add
-      .rectangle(x, y + 10, 38, 9, ctx.theme.colors.panelDark)
+      .container(x, y, [base, dome, core])
+      .setAngle(fixtureRotationFor(inwardAngle))
       .setDepth(693);
-    ctx.scene.add
-      .ellipse(x, y, 30, 26, alarmColor, 0.82)
-      .setStrokeStyle(3, ctx.theme.colors.panelDark)
-      .setDepth(694);
-    ctx.scene.add.circle(x, y - 1, 7, alarmColor, 1).setDepth(695);
 
     if (mode !== "emergency" || ctx.preferences.reducedMotion) return;
     ctx.scene.tweens.add({
