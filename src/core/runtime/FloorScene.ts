@@ -13,6 +13,7 @@ import { Player } from "../../entities/Player";
 import type { SimulationState } from "../../sim/types";
 import { floorLockReason } from "../../sim/floorAccess";
 import { FLOOR_LOCK_MESSAGES } from "../../data/elevator";
+import { musicForFloor } from "../../data/music";
 import { ElevatorPanel } from "../../ui/ElevatorPanel";
 import { preferences } from "../../state/preferences";
 import { floorShowsAlert, progression } from "../../state/progression";
@@ -57,6 +58,10 @@ export class FloorScene extends Phaser.Scene {
 
   create(): void {
     const floor = getFloorByOrder(this.currentFloor);
+    audio.playMusic(musicForFloor(this.currentFloor), {
+      loop: true,
+      volume: 0.24,
+    });
     const theme = this.floorTheme(floor.module.theme);
     this.updaters = [];
     this.interactables = [];

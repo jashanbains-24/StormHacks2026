@@ -10,10 +10,15 @@ import {
   mountFloorHarnessControls,
 } from "../dev/floorHarness";
 import { audio } from "../systems/AudioSystem";
+import { BACKGROUND_MUSIC_KEY, FLOOR_2_MUSIC_KEY } from "../data/music";
 
-export const BACKGROUND_MUSIC_KEY = "breakpoint-background-music";
+export { BACKGROUND_MUSIC_KEY } from "../data/music";
 const BACKGROUND_MUSIC_URL = new URL(
   "../systems/music/Chill Ambience.mp3",
+  import.meta.url,
+).href;
+const FLOOR_2_MUSIC_URL = new URL(
+  "../systems/music/Floor 2 Soundtrack.mp3",
   import.meta.url,
 ).href;
 
@@ -90,6 +95,7 @@ export class PreloadScene extends Phaser.Scene {
 
     this.load.setPath("");
     this.load.audio(BACKGROUND_MUSIC_KEY, BACKGROUND_MUSIC_URL);
+    this.load.audio(FLOOR_2_MUSIC_KEY, FLOOR_2_MUSIC_URL);
     getFloors().forEach(({ module }) => {
       module.assets.images.forEach((asset) =>
         this.load.image(asset.key, asset.path),

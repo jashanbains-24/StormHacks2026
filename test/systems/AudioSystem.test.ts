@@ -15,6 +15,11 @@ vi.mock("../../src/state/preferences", () => ({
 }));
 
 import { audio } from "../../src/systems/AudioSystem";
+import {
+  BACKGROUND_MUSIC_KEY,
+  FLOOR_2_MUSIC_KEY,
+  musicForFloor,
+} from "../../src/data/music";
 
 const createSoundManager = () => {
   const music = {
@@ -26,7 +31,7 @@ const createSoundManager = () => {
   };
   const manager = {
     game: { cache: { audio: { exists: vi.fn(() => true) } } },
-    add: vi.fn(() => music),
+    add: vi.fn((_key: string, _options: unknown) => music),
   };
   audio.attachSoundManager(
     manager as unknown as Parameters<typeof audio.attachSoundManager>[0],
@@ -83,5 +88,25 @@ describe("background music", () => {
     manager.game.cache.audio.exists.mockReturnValue(false);
     expect(audio.playMusic("missing")).toBeUndefined();
     expect(manager.add).toHaveBeenCalledOnce();
+  });
+
+  it("switches to Floor 2 music and restores ambience when returning, respecting mute", () => {
+    preference.muted = true;
+    const { manager, music } = createSoundManager();
+    [0, 1, 2, 2, 1].forEach((floor) =>
+      audio.playMusic(musicForFloor(floor), { volume: 0.24 }),
+    );
+    expect(manager.add.mock.calls.map(([key]) => key)).toEqual([
+      BACKGROUND_MUSIC_KEY,
+      FLOOR_2_MUSIC_KEY,
+      BACKGROUND_MUSIC_KEY,
+    ]);
+    expect(music.stop).toHaveBeenCalledTimes(2);
+    expect(music.destroy).toHaveBeenCalledTimes(2);
+    expect(manager.add).toHaveBeenLastCalledWith(BACKGROUND_MUSIC_KEY, {
+      loop: true,
+      volume: 0.24,
+      mute: true,
+    });
   });
 });
