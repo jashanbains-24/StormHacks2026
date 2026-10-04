@@ -2,10 +2,14 @@ import Phaser from "phaser";
 
 import { GAME_HEIGHT, GAME_WIDTH } from "../config/dimensions";
 import { THEME, colorHex } from "../config/theme";
-import type { FloorGlossaryEntry } from "../core/contracts";
-import { getFloorById, getFloorByOrder } from "../core/runtime/floorRegistry";
+import type { FloorDialogueLine, FloorGlossaryEntry } from "../core/contracts";
+import {
+  getFloorById,
+  getFloorByOrder,
+  getNextFloor,
+} from "../core/runtime/floorRegistry";
 import { preferences } from "../state/preferences";
-import { progression } from "../state/progression";
+import { floorShowsAlert, progression } from "../state/progression";
 import { audio } from "../systems/AudioSystem";
 import { DialogueSystem } from "../systems/DialogueSystem";
 import { gameEvents } from "../systems/EventBus";
@@ -55,15 +59,16 @@ export class UIScene extends Phaser.Scene {
       .setDepth(900);
     this.createEmergencyFrame();
     this.createAccessibilityControls();
-    if (progression.snapshot.floorResults[1]) {
-      this.handleProgressionUpdated();
-    }
+    this.refreshAlertFrame();
 
     gameEvents.on("interaction:available", this.showInteraction, this);
     gameEvents.on("interaction:clear", this.hideInteraction, this);
     gameEvents.on("floor:changed", this.handleFloorChanged, this);
     gameEvents.on("dialogue:specialist", this.showSpecialistHint, this);
+    gameEvents.on("dialogue:line", this.showDialogueLine, this);
+    gameEvents.on("dialogue:choice", this.showDialogueChoice, this);
     gameEvents.on("ui:toast", this.showToast, this);
+    gameEvents.on("ui:objective", this.setObjective, this);
     gameEvents.on("build:open", this.openBuildScene, this);
     gameEvents.on("build:closed", this.handleBuildClosed, this);
     gameEvents.on("progression:updated", this.handleProgressionUpdated, this);
@@ -78,8 +83,8 @@ export class UIScene extends Phaser.Scene {
       );
     }
     this.time.delayedCall(4200, () => {
-      if (this.scene.isActive()) {
-        this.objective.setText(tutorial.tutorial.elevator ?? "");
+      if (this.scene.isActive() && this.currentFloor === 0) {
+        this.setObjective(tutorial.tutorial.elevator ?? "");
       }
     });
 
@@ -103,7 +108,8 @@ export class UIScene extends Phaser.Scene {
     this.glossaryById = Object.fromEntries(
       content.glossary.map((entry) => [entry.id, entry]),
     );
-    this.objective.setText(
+    this.refreshAlertFrame();
+    this.setObjective(
       content.tutorial.build ??
         content.tutorial.elevator ??
         `${module.title} — incident queue empty`,
@@ -115,8 +121,38 @@ export class UIScene extends Phaser.Scene {
     this.speech?.destroy();
     const line = this.dialogue.nextSpecialistHint();
     if (!line) return;
-    this.speech = new SpeechBubble(this, line, this.glossaryById, (entry) =>
-      this.showGlossary(entry),
+    this.showDialogueLine(line);
+  }
+
+  private showDialogueLine(
+    line: FloorDialogueLine,
+    onDismiss?: () => void,
+  ): void {
+    this.speech?.destroy();
+    this.speech = new SpeechBubble(
+      this,
+      line,
+      this.glossaryById,
+      (entry) => this.showGlossary(entry),
+      undefined,
+      onDismiss,
+    );
+  }
+
+  private showDialogueChoice(
+    line: FloorDialogueLine,
+    onChoose: (choiceId: string) => void,
+  ): void {
+    this.speech?.destroy();
+    this.speech = new SpeechBubble(
+      this,
+      line,
+      this.glossaryById,
+      (entry) => this.showGlossary(entry),
+      (choiceId) => {
+        audio.playClick();
+        onChoose(choiceId);
+      },
     );
   }
 
@@ -135,6 +171,10 @@ export class UIScene extends Phaser.Scene {
       THEME.colors.warning,
       3800,
     );
+  }
+
+  private setObjective(message: string): void {
+    this.objective.setText(message).setVisible(message.length > 0);
   }
 
   private openBuildScene(floorId: string): void {
@@ -167,12 +207,15 @@ export class UIScene extends Phaser.Scene {
       )
       .setStrokeStyle(3, THEME.colors.alert, 0.5)
       .setDepth(850);
-    this.updateEmergencyMotion();
   }
 
-  private updateEmergencyMotion(): void {
+  private refreshAlertFrame(): void {
     this.alertTween?.stop();
-    this.alertFrame.setAlpha(0.7);
+    if (!floorShowsAlert(this.currentFloor, progression.snapshot)) {
+      this.alertFrame.setAlpha(1).setStrokeStyle(3, THEME.colors.success, 0.8);
+      return;
+    }
+    this.alertFrame.setAlpha(0.7).setStrokeStyle(3, THEME.colors.alert, 0.5);
     if (preferences.snapshot.reducedMotion) return;
     this.alertTween = this.tweens.add({
       targets: this.alertFrame,
@@ -208,7 +251,7 @@ export class UIScene extends Phaser.Scene {
         preferences.toggleReducedMotion();
         audio.playClick();
         this.refreshAccessibilityLabels();
-        this.updateEmergencyMotion();
+        this.refreshAlertFrame();
       });
     this.refreshAccessibilityLabels();
   }
@@ -222,9 +265,14 @@ export class UIScene extends Phaser.Scene {
   }
 
   private handleProgressionUpdated(): void {
-    this.alertTween?.stop();
-    this.alertFrame.setAlpha(1).setStrokeStyle(3, THEME.colors.success, 0.8);
-    this.objective.setText("Floor 2 unlocked — take the elevator");
+    this.refreshAlertFrame();
+    if (!progression.snapshot.floorResults[this.currentFloor]) return;
+    const nextFloor = getNextFloor(this.currentFloor);
+    this.setObjective(
+      nextFloor
+        ? `${nextFloor.module.title} unlocked — take the elevator`
+        : "Incident resolved — elevator available",
+    );
   }
 
   private removeListeners(): void {
@@ -232,7 +280,10 @@ export class UIScene extends Phaser.Scene {
     gameEvents.off("interaction:clear", this.hideInteraction, this);
     gameEvents.off("floor:changed", this.handleFloorChanged, this);
     gameEvents.off("dialogue:specialist", this.showSpecialistHint, this);
+    gameEvents.off("dialogue:line", this.showDialogueLine, this);
+    gameEvents.off("dialogue:choice", this.showDialogueChoice, this);
     gameEvents.off("ui:toast", this.showToast, this);
+    gameEvents.off("ui:objective", this.setObjective, this);
     gameEvents.off("build:open", this.openBuildScene, this);
     gameEvents.off("build:closed", this.handleBuildClosed, this);
     gameEvents.off("progression:updated", this.handleProgressionUpdated, this);
