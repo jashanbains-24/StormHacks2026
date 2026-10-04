@@ -182,7 +182,7 @@ describe("Floor 1 intern flow", () => {
     });
   });
 
-  it("keeps desk chairs original while other chairs remain rotated", () => {
+  it("uses the intended orientation for each chair group", () => {
     const officeDeskChairs = F01_OFFICE_PROPS.filter(
       (prop) =>
         prop.texture === "chair-back" && [245, 405, 565].includes(prop.x),
@@ -193,11 +193,10 @@ describe("Floor 1 intern flow", () => {
     const facingChairs = F01_OFFICE_PROPS.filter(
       (prop) => prop.texture === "chair-back" && [745, 935].includes(prop.x),
     );
-    const otherChairs = F01_OFFICE_PROPS.filter(
+    const swappedChairs = F01_OFFICE_PROPS.filter(
       (prop) =>
-        prop.texture.includes("chair") &&
-        !officeDeskChairs.includes(prop) &&
-        !facingChairs.includes(prop),
+        prop.texture.includes("cushioned-chair") &&
+        [430, 560, 1000].includes(prop.x),
     );
 
     expect(officeDeskChairs).toHaveLength(3);
@@ -208,7 +207,8 @@ describe("Floor 1 intern flow", () => {
       [745, 495, 270],
       [935, 495, 90],
     ]);
-    otherChairs.forEach((chair) => expect(chair.angle).toBe(180));
+    expect(swappedChairs).toHaveLength(6);
+    swappedChairs.forEach((chair) => expect(chair.angle).toBe(0));
   });
 
   it("places the mug on the intern's desk", () => {
@@ -222,17 +222,24 @@ describe("Floor 1 intern flow", () => {
     });
   });
 
-  it("keeps side-desk and upper conference chairs close to their tables", () => {
+  it("swaps top and bottom table-chair variants", () => {
     const sideDeskChairs = F01_OFFICE_PROPS.filter(
       (prop) => prop.x === 1000 && prop.texture.includes("chair"),
     );
-    const upperConferenceChairs = F01_OFFICE_PROPS.filter(
-      (prop) =>
-        [430, 560].includes(prop.x) && prop.texture === "cushioned-chair-back",
+    const conferenceChairs = F01_OFFICE_PROPS.filter(
+      (prop) => [430, 560].includes(prop.x) && prop.texture.includes("chair"),
     );
 
-    expect(sideDeskChairs.map(({ y }) => y)).toEqual([193, 330]);
-    expect(upperConferenceChairs.map(({ y }) => y)).toEqual([385, 385]);
+    expect(sideDeskChairs.map(({ texture, y }) => [texture, y])).toEqual([
+      ["cushioned-chair-back", 330],
+      ["cushioned-chair-front", 193],
+    ]);
+    expect(conferenceChairs.map(({ texture, y }) => [texture, y])).toEqual([
+      ["cushioned-chair-back", 565],
+      ["cushioned-chair-back", 565],
+      ["cushioned-chair-front", 385],
+      ["cushioned-chair-front", 385],
+    ]);
   });
 
   it("uses explicit footprint hitboxes for collidable furniture", () => {
