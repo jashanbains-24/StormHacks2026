@@ -99,6 +99,7 @@ export class FloorScene extends Phaser.Scene {
       dialogue: {
         showSpecialist: () =>
           gameEvents.emit("dialogue:specialist", floor.module.id),
+        dismiss: () => gameEvents.emit("dialogue:dismiss"),
       },
       glossary: {
         open: (id) => gameEvents.emit("glossary:open", id),

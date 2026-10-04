@@ -63,6 +63,7 @@ export class UIScene extends Phaser.Scene {
     gameEvents.on("interaction:clear", this.hideInteraction, this);
     gameEvents.on("floor:changed", this.handleFloorChanged, this);
     gameEvents.on("dialogue:specialist", this.showSpecialistHint, this);
+    gameEvents.on("dialogue:dismiss", this.dismissDialogue, this);
     gameEvents.on("ui:toast", this.showToast, this);
     gameEvents.on("build:open", this.openBuildScene, this);
     gameEvents.on("build:closed", this.handleBuildClosed, this);
@@ -95,7 +96,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   private handleFloorChanged(floor: number): void {
-    this.speech?.destroy();
+    this.dismissDialogue();
     this.currentFloor = floor;
     const module = getFloorByOrder(floor).module;
     const content = module.definition.content;
@@ -120,6 +121,11 @@ export class UIScene extends Phaser.Scene {
     );
   }
 
+  private dismissDialogue(): void {
+    this.speech?.destroy();
+    this.speech = undefined;
+  }
+
   private showGlossary(entry: FloorGlossaryEntry): void {
     new GlossaryPopup(this, entry);
   }
@@ -139,7 +145,7 @@ export class UIScene extends Phaser.Scene {
 
   private openBuildScene(floorId: string): void {
     if (this.scene.isActive("BuildScene")) return;
-    this.speech?.destroy();
+    this.dismissDialogue();
     this.objective.setVisible(false);
     this.interactionPrompt.setVisible(false);
     this.scene.pause("FloorScene");
@@ -232,6 +238,7 @@ export class UIScene extends Phaser.Scene {
     gameEvents.off("interaction:clear", this.hideInteraction, this);
     gameEvents.off("floor:changed", this.handleFloorChanged, this);
     gameEvents.off("dialogue:specialist", this.showSpecialistHint, this);
+    gameEvents.off("dialogue:dismiss", this.dismissDialogue, this);
     gameEvents.off("ui:toast", this.showToast, this);
     gameEvents.off("build:open", this.openBuildScene, this);
     gameEvents.off("build:closed", this.handleBuildClosed, this);

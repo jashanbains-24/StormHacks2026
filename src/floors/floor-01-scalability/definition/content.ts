@@ -6,7 +6,7 @@ export const content: FloorContent = {
       id: "f01_specialist_hint_1",
       speaker: "specialist",
       speakerName: "Rhea Boot, SRE",
-      text: "Everybody and their cat caused a traffic spike, and one server is doing all the work. It only has so much capacity.",
+      text: "You're our new intern, right? Your assigned workstation is behind me. Everybody and their cat caused a traffic spike, and one server is doing all the work. I need you on it.",
       glossaryIds: ["f01.traffic_spike", "f01.server", "f01.capacity"],
     },
     {
@@ -86,6 +86,6 @@ export const content: FloorContent = {
     },
   ],
   tutorial: {
-    build: "Talk to Rhea, then use the BUILD console",
+    build: "Intern onboarding: find Rhea before using your workstation",
   },
 };

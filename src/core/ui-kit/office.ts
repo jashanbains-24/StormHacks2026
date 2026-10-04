@@ -8,6 +8,12 @@ export interface OfficePropPlacement {
   scale?: number;
   collider?: boolean;
   depthOffset?: number;
+  collisionBox?: {
+    width: number;
+    height: number;
+    offsetX?: number;
+    offsetY?: number;
+  };
 }
 
 export type AmbientNpcBehavior =
@@ -27,6 +33,8 @@ export interface AmbientNpcPlacement {
   texture: string;
   behavior: AmbientNpcBehavior;
   flipX?: boolean;
+  frame?: number;
+  animationKey?: string | null;
 }
 
 export const createOfficeLayout = (
@@ -40,7 +48,20 @@ export const createOfficeLayout = (
       .setScale(prop.scale ?? 3)
       .setDepth(prop.y + (prop.depthOffset ?? 0));
     image.refreshBody();
-    if (prop.collider ?? true) {
+    if (prop.collisionBox) {
+      const body = ctx.scene.add
+        .rectangle(
+          prop.x + (prop.collisionBox.offsetX ?? 0),
+          prop.y + (prop.collisionBox.offsetY ?? 0),
+          prop.collisionBox.width,
+          prop.collisionBox.height,
+          0,
+          0,
+        )
+        .setDepth(-20);
+      ctx.scene.physics.add.existing(body, true);
+      ctx.scene.physics.add.collider(ctx.player, body);
+    } else if (prop.collider ?? true) {
       ctx.scene.physics.add.collider(ctx.player, image);
     }
   }
@@ -51,10 +72,13 @@ export const createOfficeLayout = (
     const npc = ctx.addNpc(placement.x, placement.y, placement.id, {
       texture: placement.texture,
       flipX: placement.flipX,
+      frame: placement.frame,
       animationKey:
-        !ctx.preferences.reducedMotion && placement.behavior.kind === "desk"
-          ? `office-${placement.texture}-type`
-          : null,
+        placement.animationKey === undefined
+          ? !ctx.preferences.reducedMotion && placement.behavior.kind === "desk"
+            ? `office-${placement.texture}-type`
+            : null
+          : placement.animationKey,
       staticBody: !moving,
     });
     ctx.scene.physics.add.collider(ctx.player, npc);

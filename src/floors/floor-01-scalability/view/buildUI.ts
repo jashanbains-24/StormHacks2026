@@ -1,28 +1,75 @@
 import type { BuildUIHandle, FloorContext } from "../../../core/contracts";
-import { colorHex } from "../../../core/ui-kit";
+import { colorHex, createOfficeLayout } from "../../../core/ui-kit";
+import { INTERN_WORKSTATION, INTERN_WORKSTATION_PROPS } from "./plan";
+import { getQuestProgress } from "./runtime";
 
 export const createBuildUI = (ctx: FloorContext): BuildUIHandle => {
-  ctx.scene.add
-    .rectangle(220, 440, 190, 112, ctx.theme.colors.panelDark)
-    .setStrokeStyle(4, ctx.theme.colors.warning)
-    .setDepth(440);
-  ctx.scene.add
-    .text(220, 440, "BUILD\nCONSOLE", {
+  const quest = getQuestProgress(ctx);
+  const isUnlocked = (): boolean =>
+    quest.consoleUnlocked ||
+    ctx.progression.resultFor(ctx.floorOrder) !== undefined;
+
+  createOfficeLayout(ctx, INTERN_WORKSTATION_PROPS, []);
+  const screenGlow = ctx.scene.add
+    .rectangle(
+      INTERN_WORKSTATION.x,
+      INTERN_WORKSTATION.y - 48,
+      42,
+      25,
+      ctx.theme.colors.warning,
+      0.35,
+    )
+    .setDepth(INTERN_WORKSTATION.y - 49);
+  const status = ctx.scene.add
+    .text(INTERN_WORKSTATION.x, INTERN_WORKSTATION.y + 75, "", {
       align: "center",
-      color: colorHex(ctx.theme.colors.white),
+      color: colorHex(ctx.theme.colors.ink),
+      backgroundColor: colorHex(ctx.theme.colors.panel),
       fontFamily: ctx.theme.fonts.mono,
-      fontSize: "20px",
+      fontSize: "13px",
       fontStyle: "bold",
+      padding: { x: 8, y: 5 },
     })
     .setOrigin(0.5)
-    .setDepth(441);
+    .setDepth(600);
+
+  let previouslyUnlocked: boolean | undefined;
+  const refreshStatus = (): void => {
+    const unlocked = isUnlocked();
+    if (unlocked === previouslyUnlocked) return;
+    previouslyUnlocked = unlocked;
+    status
+      .setText(
+        unlocked
+          ? "INTERN-01 // BUILD READY"
+          : "INTERN-01 // LOCKED — SEE RHEA",
+      )
+      .setColor(
+        colorHex(unlocked ? ctx.theme.colors.success : ctx.theme.colors.alert),
+      );
+    screenGlow.setFillStyle(
+      unlocked ? ctx.theme.colors.success : ctx.theme.colors.warning,
+      0.42,
+    );
+  };
+  refreshStatus();
+  ctx.addUpdater(refreshStatus);
+
   ctx.addInteractable({
     id: "f01:build_console",
-    label: "Open build console",
-    x: 220,
-    y: 440,
-    range: 110,
-    onInteract: () => ctx.openBuild(),
+    label: "Use your intern workstation",
+    x: INTERN_WORKSTATION.x,
+    y: INTERN_WORKSTATION.y,
+    range: 100,
+    onInteract: () => {
+      if (!isUnlocked()) {
+        ctx.hud.showToast(
+          "Workstation locked. Check in with Rhea before touching production.",
+        );
+        return;
+      }
+      ctx.openBuild();
+    },
   });
   return {};
 };

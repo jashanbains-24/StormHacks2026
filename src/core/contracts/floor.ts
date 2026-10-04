@@ -136,6 +136,7 @@ export interface FloorContext {
   };
   readonly dialogue: {
     showSpecialist(): void;
+    dismiss(): void;
   };
   readonly glossary: {
     open(id: string): void;
