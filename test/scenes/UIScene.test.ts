@@ -4,6 +4,7 @@ const state = vi.hoisted(() => ({
   floorResults: {} as Record<number, { quality: string }>,
   canonicalThisSession: false,
   speech: vi.fn(),
+  pressedE: false,
 }));
 
 vi.mock("phaser", async () => {
@@ -33,14 +34,35 @@ vi.mock("phaser", async () => {
       return this;
     }
   }
+  class Keyboard extends EventEmitter {
+    addKey() {
+      return {};
+    }
+  }
   return {
     default: {
       Events: { EventEmitter },
+      Input: {
+        Keyboard: {
+          KeyCodes: { E: 69 },
+          JustDown: () => {
+            const pressed = state.pressedE;
+            state.pressedE = false;
+            return pressed;
+          },
+        },
+      },
+      Math: {
+        Distance: {
+          Between: (x1: number, y1: number, x2: number, y2: number) =>
+            Math.hypot(x1 - x2, y1 - y2),
+        },
+      },
       Scenes: { Events: { SHUTDOWN: "shutdown" } },
       Scene: class {
         add = { text: vi.fn((_x, _y, text: string) => new Text(text)) };
         events = new EventEmitter();
-        input = { keyboard: new EventEmitter() };
+        input = { keyboard: new Keyboard() };
         time = { delayedCall: vi.fn() };
         scene = {
           isActive: vi.fn(() => false),
@@ -94,12 +116,16 @@ vi.mock("../../src/ui/GlossaryPopup", () => ({ GlossaryPopup: class {} }));
 
 import { UIScene } from "../../src/scenes/UIScene";
 import { gameEvents } from "../../src/systems/EventBus";
+import { InteractionSystem } from "../../src/systems/InteractionSystem";
+import type { Player } from "../../src/entities/Player";
+import { content } from "../../src/floors/floor-01-scalability/definition/content";
 
 describe("onboarding HUD lifecycle", () => {
   beforeEach(() => {
     gameEvents.removeAllListeners();
     state.floorResults = {};
     state.canonicalThisSession = false;
+    state.pressedE = false;
     vi.clearAllMocks();
   });
 
@@ -141,5 +167,81 @@ describe("onboarding HUD lifecycle", () => {
 
     expect(ui.scene.stop).toHaveBeenCalledWith("FloorScene");
     expect(ui.scene.launch).toHaveBeenCalledWith("FloorScene", { floor: 1 });
+  });
+
+  it("routes E to the open dialogue without reopening the nearby NPC", () => {
+    const ui = new UIScene();
+    ui.create();
+    const onDismiss = vi.fn();
+    const onInteract = vi.fn(() => {
+      gameEvents.emit(
+        "dialogue:sequence",
+        content.specialistHints.slice(0, 2),
+        onDismiss,
+      );
+    });
+    const interactions = new InteractionSystem(ui, { x: 0, y: 0 } as Player);
+    interactions.setInteractables([
+      { id: "npc", label: "Talk", x: 0, y: 0, onInteract },
+    ]);
+    for (let press = 0; press < 3; press += 1) {
+      state.pressedE = true;
+      interactions.update();
+    }
+    expect(state.speech).toHaveBeenCalledTimes(2);
+    expect(state.speech.mock.calls[1][1]).toBe(content.specialistHints[1]);
+    expect(onInteract).toHaveBeenCalledOnce();
+    expect(onDismiss).toHaveBeenCalledOnce();
+  });
+
+  it("closes on actual movement and cancels a chained follow-up", () => {
+    const ui = new UIScene();
+    ui.create();
+    const player = { x: 0, y: 0 } as Player;
+    const interactions = new InteractionSystem(ui, player);
+    const onAcknowledged = vi.fn(() => {
+      gameEvents.emit("dialogue:line", content.specialistHints[1]);
+    });
+    gameEvents.emit(
+      "dialogue:line",
+      content.specialistHints[0],
+      onAcknowledged,
+    );
+    interactions.update();
+    player.x = 1;
+    interactions.update();
+    expect(onAcknowledged).not.toHaveBeenCalled();
+    expect(state.speech).toHaveBeenCalledOnce();
+    const request = { handled: false };
+    gameEvents.emit("interaction:requested", request);
+    expect(request.handled).toBe(false);
+  });
+
+  it("consumes E on a choice without choosing or reopening the NPC", () => {
+    const ui = new UIScene();
+    ui.create();
+    const onChoose = vi.fn();
+    const onInteract = vi.fn();
+    const interactions = new InteractionSystem(ui, { x: 0, y: 0 } as Player);
+    interactions.setInteractables([
+      { id: "npc", label: "Talk", x: 0, y: 0, onInteract },
+    ]);
+    gameEvents.emit(
+      "dialogue:choice",
+      {
+        ...content.specialistHints[0],
+        choices: [{ id: "cache", label: "Shared cache" }],
+      },
+      onChoose,
+    );
+    state.pressedE = true;
+    interactions.update();
+    expect(onChoose).not.toHaveBeenCalled();
+    expect(onInteract).not.toHaveBeenCalled();
+    const actions = state.speech.mock.lastCall?.[4] as {
+      onChoice: (id: string) => void;
+    };
+    actions.onChoice("cache");
+    expect(onChoose).toHaveBeenCalledExactlyOnceWith("cache");
   });
 });

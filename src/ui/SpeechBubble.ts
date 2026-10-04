@@ -21,7 +21,6 @@ interface SpeechBubbleActions {
   actionLabel?: string;
   onAction?: () => void;
   onChoice?: (choiceId: string) => void;
-  onDismiss?: () => void;
 }
 
 export class SpeechBubble extends Phaser.GameObjects.Container {
@@ -30,20 +29,11 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
     line: FloorDialogueLine,
     glossaryById: Readonly<Record<string, FloorGlossaryEntry>>,
     onGlossary: (entry: FloorGlossaryEntry) => void,
-    actionsOrChoice: SpeechBubbleActions | ((choiceId: string) => void) = {},
-    onDismiss?: () => void,
+    actions: SpeechBubbleActions = {},
   ) {
     super(scene, 0, 0);
     scene.add.existing(this);
     this.setDepth(1100);
-
-    const actions: SpeechBubbleActions =
-      typeof actionsOrChoice === "function"
-        ? { onChoice: actionsOrChoice, onDismiss }
-        : {
-            ...actionsOrChoice,
-            onDismiss: actionsOrChoice.onDismiss ?? onDismiss,
-          };
 
     if (!usesInlineTerms(line)) {
       this.buildClassic(line, glossaryById, onGlossary, actions);
@@ -58,7 +48,6 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
       return;
     }
     this.destroy();
-    actions.onDismiss?.();
   }
 
   private buildClassic(
@@ -143,21 +132,24 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
       this.add(chip);
     }
 
-    if (actions.actionLabel && actions.onAction) {
-      const action = this.scene.add
-        .text(GAME_WIDTH - 92, y + 140, actions.actionLabel, {
-          color: colorHex(THEME.colors.white),
-          backgroundColor: colorHex(THEME.colors.success),
-          fontFamily: THEME.fonts.mono,
-          fontSize: "15px",
-          fontStyle: "bold",
-          padding: { x: 12, y: 7 },
-        })
-        .setOrigin(1, 0)
-        .setInteractive({ useHandCursor: true })
-        .on("pointerup", actions.onAction);
-      this.add(action);
-    }
+    this.addActionButton(actions, y + panelHeight - 44);
+  }
+
+  private addActionButton(actions: SpeechBubbleActions, y: number): void {
+    if (!actions.actionLabel || !actions.onAction) return;
+    const action = this.scene.add
+      .text(GAME_WIDTH - 92, y, actions.actionLabel, {
+        color: colorHex(THEME.colors.white),
+        backgroundColor: colorHex(THEME.colors.success),
+        fontFamily: THEME.fonts.mono,
+        fontSize: "15px",
+        fontStyle: "bold",
+        padding: { x: 12, y: 7 },
+      })
+      .setOrigin(1, 0)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerup", actions.onAction);
+    this.add(action);
   }
 
   private buildRich(
@@ -226,7 +218,10 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
       cursorY += row.height + 16;
     });
 
-    const panelHeight = Math.max(184, cursorY + 78);
+    const panelHeight = Math.max(
+      184,
+      cursorY + (actions.actionLabel ? 118 : 78),
+    );
     const y = GAME_HEIGHT - panelHeight - 52;
     const panel = this.scene.add
       .rectangle(52, y, GAME_WIDTH - 104, panelHeight, THEME.colors.panel, 0.98)
@@ -249,5 +244,6 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
     content.setPosition(80, y + 52);
     this.add([panel, speaker, close]);
     this.sendToBack(panel);
+    this.addActionButton(actions, y + panelHeight - 44);
   }
 }
