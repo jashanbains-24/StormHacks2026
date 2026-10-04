@@ -48,10 +48,11 @@ export const OFFICE_CHARACTER_TEXTURES: OfficeCharacterTexture[] = [
 export type AmbientNpcBehavior =
   | { kind: "desk" }
   | {
-      kind: "patrol";
+      kind: "route";
       toX: number;
       toY: number;
       durationMs: number;
+      pauseMs: number;
     };
 
 export interface AmbientNpcPlacement {
@@ -132,17 +133,29 @@ export const AMBIENT_NPCS_BY_FLOOR: Record<number, AmbientNpcPlacement[]> = {
     },
     {
       id: "legal-noor",
-      x: 610,
-      y: 345,
+      x: 725,
+      y: 226,
       texture: "ambient-5",
-      behavior: { kind: "patrol", toX: 760, toY: 395, durationMs: 2800 },
+      behavior: {
+        kind: "route",
+        toX: 555,
+        toY: 350,
+        durationMs: 2800,
+        pauseMs: 1800,
+      },
     },
     {
       id: "facilities-finn",
-      x: 965,
-      y: 330,
+      x: 1000,
+      y: 300,
       texture: "specialist",
-      behavior: { kind: "patrol", toX: 1045, toY: 425, durationMs: 2400 },
+      behavior: {
+        kind: "route",
+        toX: 1018,
+        toY: 500,
+        durationMs: 2400,
+        pauseMs: 2200,
+      },
       flipX: true,
     },
   ],
@@ -170,25 +183,43 @@ export const AMBIENT_NPCS_BY_FLOOR: Record<number, AmbientNpcPlacement[]> = {
     },
     {
       id: "support-jules",
-      x: 690,
-      y: 320,
+      x: 725,
+      y: 226,
       texture: "ambient-5",
-      behavior: { kind: "patrol", toX: 735, toY: 430, durationMs: 2300 },
+      behavior: {
+        kind: "route",
+        toX: 610,
+        toY: 430,
+        durationMs: 2300,
+        pauseMs: 1600,
+      },
     },
     {
       id: "facilities-finn",
-      x: 980,
+      x: 1000,
       y: 300,
       texture: "player",
-      behavior: { kind: "patrol", toX: 1045, toY: 420, durationMs: 2600 },
+      behavior: {
+        kind: "route",
+        toX: 1018,
+        toY: 500,
+        durationMs: 2600,
+        pauseMs: 2000,
+      },
       flipX: true,
     },
     {
       id: "design-drew",
-      x: 650,
-      y: 510,
+      x: 555,
+      y: 430,
       texture: "ambient-3",
-      behavior: { kind: "patrol", toX: 560, toY: 450, durationMs: 2100 },
+      behavior: {
+        kind: "route",
+        toX: 650,
+        toY: 493,
+        durationMs: 2100,
+        pauseMs: 2400,
+      },
     },
   ],
   2: [
@@ -201,10 +232,16 @@ export const AMBIENT_NPCS_BY_FLOOR: Record<number, AmbientNpcPlacement[]> = {
     },
     {
       id: "cache-casey",
-      x: 850,
-      y: 440,
+      x: 1000,
+      y: 300,
       texture: "ambient-1",
-      behavior: { kind: "patrol", toX: 980, toY: 340, durationMs: 2800 },
+      behavior: {
+        kind: "route",
+        toX: 927,
+        toY: 493,
+        durationMs: 2800,
+        pauseMs: 1900,
+      },
     },
   ],
 };

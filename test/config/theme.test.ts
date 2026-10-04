@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { colorHex, THEME } from "./theme";
+import { colorHex, THEME } from "../../src/config/theme";
 
 describe("theme", () => {
   it("formats Phaser colors for text styles", () => {

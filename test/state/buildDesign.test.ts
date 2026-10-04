@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { BuildDesignStore } from "../../src/state/buildDesign";
 import { makeDesign } from "../sim/fixtures";
-import { BuildDesignStore } from "./buildDesign";
 
 class MemoryStorage {
   private values = new Map<string, string>();

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ProgressionStore } from "./progression";
+import { ProgressionStore } from "../../src/state/progression";
 
 class MemoryStorage {
   private values = new Map<string, string>();

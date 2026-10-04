@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { evaluateDesign } from "./evaluator";
+import { evaluateDesign } from "../../src/sim/evaluator";
 import { makeDesign } from "./fixtures";
 
 describe("evaluateDesign", () => {

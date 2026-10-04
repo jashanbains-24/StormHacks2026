@@ -15,3 +15,4 @@
 - After every substantive change, run the relevant tests, type-check, production
   build, formatting check, and linter diagnostics before committing.
 - Keep commits focused and push verified milestones as work progresses.
+- create tests but not to the point where there are too many, just create a generic test suite for that feature

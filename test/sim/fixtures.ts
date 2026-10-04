@@ -1,4 +1,4 @@
-import type { DesignNode, SystemDesign } from "./types";
+import type { DesignNode, SystemDesign } from "../../src/sim/types";
 
 export const makeDesign = (
   serverCount: number,

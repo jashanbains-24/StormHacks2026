@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { SIM_CONFIG } from "../config/simConfig";
-import { makeDesign } from "./fixtures";
+import { SIM_CONFIG } from "../../src/config/simConfig";
 import {
   createSimulation,
   getScheduleDuration,
   runSimulation,
   tickSimulation,
-} from "./simulation";
+} from "../../src/sim/simulation";
+import { makeDesign } from "./fixtures";
 
 describe("simulation", () => {
   const fullRunSeconds =

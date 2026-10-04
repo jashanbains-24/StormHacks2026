@@ -16,6 +16,7 @@ export class FloorScene extends Phaser.Scene {
   private currentFloor = 0;
   private player!: Player;
   private interactions!: InteractionSystem;
+  private roamingNpcs: Npc[] = [];
 
   constructor() {
     super("FloorScene");
@@ -48,6 +49,7 @@ export class FloorScene extends Phaser.Scene {
 
   update(): void {
     this.player.update();
+    this.roamingNpcs.forEach((npc) => npc.updateMovementAnimation());
     this.interactions.update();
   }
 
@@ -130,22 +132,24 @@ export class FloorScene extends Phaser.Scene {
   }
 
   private createAmbientNpcs(): void {
+    this.roamingNpcs = [];
     for (const placement of AMBIENT_NPCS_BY_FLOOR[this.currentFloor] ?? []) {
-      const shouldPatrol =
-        placement.behavior.kind === "patrol" &&
+      const shouldMove =
+        placement.behavior.kind === "route" &&
         !preferences.snapshot.reducedMotion;
       const npc = new Npc(this, placement.x, placement.y, placement.id, {
         texture: placement.texture,
         flipX: placement.flipX,
-        animationKey: preferences.snapshot.reducedMotion
-          ? null
-          : `office-${placement.texture}-${
-              placement.behavior.kind === "desk" ? "type" : "walk"
-            }`,
-        staticBody: !shouldPatrol,
+        animationKey:
+          !preferences.snapshot.reducedMotion &&
+          placement.behavior.kind === "desk"
+            ? `office-${placement.texture}-type`
+            : null,
+        staticBody: !shouldMove,
       });
       this.physics.add.collider(this.player, npc);
-      if (shouldPatrol && placement.behavior.kind === "patrol") {
+      if (shouldMove && placement.behavior.kind === "route") {
+        this.roamingNpcs.push(npc);
         this.tweens.add({
           targets: npc,
           x: placement.behavior.toX,
@@ -153,8 +157,8 @@ export class FloorScene extends Phaser.Scene {
           duration: placement.behavior.durationMs,
           yoyo: true,
           repeat: -1,
-          onYoyo: () => npc.toggleFlipX(),
-          onRepeat: () => npc.toggleFlipX(),
+          yoyoDelay: placement.behavior.pauseMs,
+          repeatDelay: placement.behavior.pauseMs,
         });
       }
     }

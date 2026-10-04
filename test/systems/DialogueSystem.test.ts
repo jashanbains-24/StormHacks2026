@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DialogueSystem } from "./DialogueSystem";
+import { DialogueSystem } from "../../src/systems/DialogueSystem";
 
 describe("DialogueSystem", () => {
   it("advances through three hints and repeats the specific hint", () => {
