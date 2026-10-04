@@ -32,12 +32,14 @@ export class UIScene extends Phaser.Scene {
     onDismiss?: () => void;
   };
   private tutorialRecruitName?: string;
+  private tutorialWelcomeShown = false;
 
   constructor() {
     super("UIScene");
   }
 
   create(): void {
+    this.tutorialWelcomeShown = false;
     const tutorial = getFloorByOrder(0).module.definition.content;
     this.interactionPrompt = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT - 17, "", {
@@ -124,7 +126,8 @@ export class UIScene extends Phaser.Scene {
         content.tutorial.elevator ??
         `${module.title} — incident queue empty`,
     );
-    if (floor === 0 && content.managerAlert) {
+    if (floor === 0 && content.managerAlert && !this.tutorialWelcomeShown) {
+      this.tutorialWelcomeShown = true;
       this.speech = new SpeechBubble(
         this,
         content.managerAlert,
@@ -265,6 +268,7 @@ export class UIScene extends Phaser.Scene {
 
   private handleBuildClosed(): void {
     this.objective.setVisible(true);
+    if (this.currentFloor === 0) return;
     const shouldReloadFloor =
       this.currentFloor === 1
         ? progression.wasCanonicallyCompletedThisSession(1)
