@@ -39,6 +39,18 @@ describe("BuildDesignStore", () => {
     expect(store.load()).toBeUndefined();
   });
 
+  it("clears evaluated attempts while preserving unevaluated drafts", () => {
+    const store = new BuildDesignStore(new MemoryStorage());
+    const design = makeDesign(3, true);
+    store.save(design);
+
+    store.clearAfterEvaluatedAttempt(false);
+    expect(store.load()).toEqual(design);
+
+    store.clearAfterEvaluatedAttempt(true);
+    expect(store.load()).toBeUndefined();
+  });
+
   it("ignores malformed saved data", () => {
     const storage = new MemoryStorage();
     storage.setItem("uptime.floor1.design.v1", '{"nodes":[],"connections":[]}');

@@ -148,6 +148,8 @@ export interface FloorContext {
   };
   readonly dialogue: {
     showSpecialist(): void;
+    showSequence(lines: FloorDialogueLine[], onDismiss?: () => void): void;
+    dismiss(): void;
     showLine(line: FloorDialogueLine, onDismiss?: () => void): void;
     showChoice(
       line: FloorDialogueLine,
@@ -162,6 +164,8 @@ export interface FloorContext {
     resultFor(
       order: number,
     ): { quality: DesignQuality; debtNotes: string[] } | undefined;
+    completedThisSession(order: number): boolean;
+    canonicalThisSession(order: number): boolean;
     report(order: number, quality: DesignQuality, debtNotes: string[]): void;
     flag(name: string): string | undefined;
     setFlag(name: string, value: string): void;
@@ -172,6 +176,7 @@ export interface FloorContext {
   };
   readonly events: {
     emit(name: string, ...args: unknown[]): void;
+    on(name: string, listener: (...args: unknown[]) => void): () => void;
   };
   readonly assets: {
     key(localName: string): string;
@@ -204,6 +209,7 @@ export interface FloorView {
   createLayout(ctx: FloorContext): LayoutHandle;
   createBuildUI(ctx: FloorContext): BuildUIHandle;
   createEffects?(ctx: FloorContext): EffectsHandle;
+  replacesDefaultEmergencyEffects?: boolean;
 }
 
 export interface FloorModule {

@@ -63,7 +63,9 @@ export class FloorScene extends Phaser.Scene {
     this.player = new Player(this, 130, GAME_HEIGHT / 2);
     this.createBoundaries(theme);
     this.createHeader(floor.module.title, theme);
-    this.createEmergencyLights(theme);
+    if (!floor.module.view.replacesDefaultEmergencyEffects) {
+      this.createEmergencyLights(theme);
+    }
 
     const context = this.createContext(theme);
     this.createElevator(context);
@@ -106,6 +108,9 @@ export class FloorScene extends Phaser.Scene {
       dialogue: {
         showSpecialist: () =>
           gameEvents.emit("dialogue:specialist", floor.module.id),
+        showSequence: (lines, onDismiss) =>
+          gameEvents.emit("dialogue:sequence", lines, onDismiss),
+        dismiss: () => gameEvents.emit("dialogue:dismiss"),
         showLine: (line, onDismiss) => {
           audio.playClick();
           gameEvents.emit("dialogue:line", line, onDismiss);
@@ -123,6 +128,10 @@ export class FloorScene extends Phaser.Scene {
           return progression.snapshot.unlockedFloor;
         },
         resultFor: (order) => progression.snapshot.floorResults[order],
+        completedThisSession: (order) =>
+          progression.wasCompletedThisSession(order),
+        canonicalThisSession: (order) =>
+          progression.wasCanonicallyCompletedThisSession(order),
         report: (order, quality, debtNotes) => {
           progression.completeFloor(order, quality, debtNotes);
           gameEvents.emit("progression:updated", progression.snapshot);
@@ -138,6 +147,12 @@ export class FloorScene extends Phaser.Scene {
       },
       events: {
         emit: (name, ...args) => gameEvents.emit(name, ...args),
+        on: (name, listener) => {
+          const unsubscribe = () => gameEvents.off(name, listener);
+          gameEvents.on(name, listener);
+          this.events.once(Phaser.Scenes.Events.SHUTDOWN, unsubscribe);
+          return unsubscribe;
+        },
       },
       assets: {
         key: (localName) =>

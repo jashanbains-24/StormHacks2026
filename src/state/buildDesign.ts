@@ -66,6 +66,10 @@ export class BuildDesignStore {
   reset(): void {
     this.storage?.removeItem(this.storageKey);
   }
+
+  clearAfterEvaluatedAttempt(evaluated: boolean): void {
+    if (evaluated) this.reset();
+  }
 }
 
 export const buildDesignStore = new BuildDesignStore();

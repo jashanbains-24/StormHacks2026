@@ -16,32 +16,56 @@ const usesInlineTerms = (line: FloorDialogueLine): boolean =>
   termMark.test(line.text) ||
   (line.choices ?? []).some((choice) => termMark.test(choice.label));
 
+interface SpeechBubbleActions {
+  onClose?: () => void;
+  actionLabel?: string;
+  onAction?: () => void;
+  onChoice?: (choiceId: string) => void;
+  onDismiss?: () => void;
+}
+
 export class SpeechBubble extends Phaser.GameObjects.Container {
   constructor(
     scene: Phaser.Scene,
     line: FloorDialogueLine,
     glossaryById: Readonly<Record<string, FloorGlossaryEntry>>,
     onGlossary: (entry: FloorGlossaryEntry) => void,
-    onChoice?: (choiceId: string) => void,
+    actionsOrChoice: SpeechBubbleActions | ((choiceId: string) => void) = {},
     onDismiss?: () => void,
   ) {
     super(scene, 0, 0);
     scene.add.existing(this);
     this.setDepth(1100);
 
+    const actions: SpeechBubbleActions =
+      typeof actionsOrChoice === "function"
+        ? { onChoice: actionsOrChoice, onDismiss }
+        : {
+            ...actionsOrChoice,
+            onDismiss: actionsOrChoice.onDismiss ?? onDismiss,
+          };
+
     if (!usesInlineTerms(line)) {
-      this.buildClassic(line, glossaryById, onGlossary, onChoice, onDismiss);
+      this.buildClassic(line, glossaryById, onGlossary, actions);
       return;
     }
-    this.buildRich(line, glossaryById, onChoice, onDismiss);
+    this.buildRich(line, glossaryById, actions);
+  }
+
+  private closeBubble(actions: SpeechBubbleActions): void {
+    if (actions.onClose) {
+      actions.onClose();
+      return;
+    }
+    this.destroy();
+    actions.onDismiss?.();
   }
 
   private buildClassic(
     line: FloorDialogueLine,
     glossaryById: Readonly<Record<string, FloorGlossaryEntry>>,
     onGlossary: (entry: FloorGlossaryEntry) => void,
-    onChoice?: (choiceId: string) => void,
-    onDismiss?: () => void,
+    actions: SpeechBubbleActions,
   ): void {
     const hasChoices = (line.choices?.length ?? 0) > 0;
     const panelHeight = hasChoices ? 236 : 184;
@@ -70,10 +94,7 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
         fontSize: "28px",
       })
       .setInteractive({ useHandCursor: true })
-      .on("pointerup", () => {
-        this.destroy();
-        onDismiss?.();
-      });
+      .on("pointerup", () => this.closeBubble(actions));
     this.add([panel, speaker, body, close]);
 
     if (hasChoices) {
@@ -90,7 +111,7 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
           .setInteractive({ useHandCursor: true })
           .on("pointerup", () => {
             this.destroy();
-            onChoice?.(choice.id);
+            actions.onChoice?.(choice.id);
           });
         this.add(button);
       });
@@ -121,13 +142,28 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
       chipX += chip.width + 9;
       this.add(chip);
     }
+
+    if (actions.actionLabel && actions.onAction) {
+      const action = this.scene.add
+        .text(GAME_WIDTH - 92, y + 140, actions.actionLabel, {
+          color: colorHex(THEME.colors.white),
+          backgroundColor: colorHex(THEME.colors.success),
+          fontFamily: THEME.fonts.mono,
+          fontSize: "15px",
+          fontStyle: "bold",
+          padding: { x: 12, y: 7 },
+        })
+        .setOrigin(1, 0)
+        .setInteractive({ useHandCursor: true })
+        .on("pointerup", actions.onAction);
+      this.add(action);
+    }
   }
 
   private buildRich(
     line: FloorDialogueLine,
     glossaryById: Readonly<Record<string, FloorGlossaryEntry>>,
-    onChoice?: (choiceId: string) => void,
-    onDismiss?: () => void,
+    actions: SpeechBubbleActions,
   ): void {
     const focus = createTermFocusGroup(this.scene);
     this.once(Phaser.GameObjects.Events.DESTROY, () => {
@@ -184,7 +220,7 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
         .setInteractive({ useHandCursor: true })
         .on("pointerup", () => {
           this.destroy();
-          onChoice?.(choice.id);
+          actions.onChoice?.(choice.id);
         });
       content.addAt(background, 0);
       cursorY += row.height + 16;
@@ -209,10 +245,7 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
         fontSize: "28px",
       })
       .setInteractive({ useHandCursor: true })
-      .on("pointerup", () => {
-        this.destroy();
-        onDismiss?.();
-      });
+      .on("pointerup", () => this.closeBubble(actions));
     content.setPosition(80, y + 52);
     this.add([panel, speaker, close]);
     this.sendToBack(panel);

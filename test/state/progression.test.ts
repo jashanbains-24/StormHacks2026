@@ -41,6 +41,28 @@ describe("ProgressionStore", () => {
     });
   });
 
+  it("keeps persisted completion separate from this session's resolution", () => {
+    const storage = new MemoryStorage();
+    const store = new ProgressionStore(storage);
+    store.completeFloor(1, "canonical", []);
+
+    expect(store.wasCompletedThisSession(1)).toBe(true);
+    const restored = new ProgressionStore(storage);
+    expect(restored.snapshot.floorResults[1]?.quality).toBe("canonical");
+    expect(restored.wasCompletedThisSession(1)).toBe(false);
+  });
+
+  it("distinguishes a tech-debt result from a canonical resolution", () => {
+    const store = new ProgressionStore(new MemoryStorage());
+    store.completeFloor(1, "partial", ["No spare capacity."]);
+
+    expect(store.wasCompletedThisSession(1)).toBe(true);
+    expect(store.wasCanonicallyCompletedThisSession(1)).toBe(false);
+
+    store.completeFloor(1, "canonical", []);
+    expect(store.wasCanonicallyCompletedThisSession(1)).toBe(true);
+  });
+
   it("keeps the current visit in memory and clears the data floor on reload", () => {
     const storage = new MemoryStorage();
     const store = new ProgressionStore(storage);

@@ -32,6 +32,7 @@ const CANVAS_TOP = 116;
 const CANVAS_RIGHT = GAME_WIDTH - 24;
 const CANVAS_BOTTOM = GAME_HEIGHT - 74;
 const SIMULATION_SPEED = 2.4;
+const CLOSE_CONTROL_DEPTH = 1000;
 
 export class BuildScene extends Phaser.Scene {
   private readonly nodes = new Map<string, BuildNode>();
@@ -50,6 +51,7 @@ export class BuildScene extends Phaser.Scene {
   private outcomePanel?: Phaser.GameObjects.Container;
   private crashCount = 0;
   private floorOrder = 1;
+  private evaluatedSinceOpen = false;
   private tutorialMode = false;
   private tutorialStage: "name" | "confirm" | "questions" = "name";
   private tutorialName = "";
@@ -67,6 +69,17 @@ export class BuildScene extends Phaser.Scene {
 
   init(data: { floorOrder?: number }): void {
     this.floorOrder = data.floorOrder ?? 1;
+    this.evaluatedSinceOpen = false;
+    this.nodes.clear();
+    this.connections = [];
+    this.nextNodeId = 1;
+    this.activeWireFrom = undefined;
+    this.activePointer = undefined;
+    this.simulation = undefined;
+    this.running = false;
+    this.trafficDots = [];
+    this.outcomePanel = undefined;
+    this.crashCount = 0;
     this.tutorialMode =
       getFloorByOrder(this.floorOrder).module.definition.incident.buildMode ===
       "tutorial";
@@ -100,6 +113,7 @@ export class BuildScene extends Phaser.Scene {
 
     this.restoreDesign();
     this.drawConnections();
+    this.input.keyboard?.on("keydown-ESC", this.closeBuild, this);
 
     this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
       if (!this.activeWireFrom) return;
@@ -116,6 +130,7 @@ export class BuildScene extends Phaser.Scene {
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.input.removeAllListeners();
+      this.input.keyboard?.off("keydown-ESC", this.closeBuild, this);
     });
   }
 
@@ -389,14 +404,18 @@ export class BuildScene extends Phaser.Scene {
       fontSize: "15px",
     });
     this.add
-      .text(GAME_WIDTH - 34, 22, "×", {
+      .rectangle(GAME_WIDTH - 43, 42, 56, 56, THEME.colors.panelDark, 0.01)
+      .setDepth(CLOSE_CONTROL_DEPTH)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerup", () => this.closeBuild());
+    this.add
+      .text(GAME_WIDTH - 31, 16, "×", {
         color: colorHex(THEME.colors.white),
         fontFamily: THEME.fonts.family,
         fontSize: "34px",
       })
       .setOrigin(1, 0)
-      .setInteractive({ useHandCursor: true })
-      .on("pointerup", () => this.closeBuild());
+      .setDepth(CLOSE_CONTROL_DEPTH + 1);
 
     this.add
       .rectangle(
@@ -753,6 +772,7 @@ export class BuildScene extends Phaser.Scene {
   }
 
   private showOutcome(evaluation: Evaluation): void {
+    this.evaluatedSinceOpen = true;
     this.destroyTrafficDots();
     this.runButton.setAlpha(1);
     if (evaluation.quality === "canonical") {
@@ -769,6 +789,10 @@ export class BuildScene extends Phaser.Scene {
       );
       gameEvents.emit("progression:updated", progression.snapshot);
     }
+    gameEvents.emit("build:result", this.floorOrder, {
+      ...evaluation,
+      debtNotes: [...evaluation.debtNotes],
+    });
 
     const panel = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT / 2);
     panel.setDepth(200);
@@ -996,6 +1020,10 @@ export class BuildScene extends Phaser.Scene {
   private closeBuild(): void {
     this.running = false;
     this.destroyTrafficDots();
+    const store = this.tutorialMode
+      ? tutorialBuildDesignStore
+      : buildDesignStore;
+    store.clearAfterEvaluatedAttempt(this.evaluatedSinceOpen);
     this.scene.stop();
     this.scene.resume("FloorScene");
     gameEvents.emit("build:closed");
