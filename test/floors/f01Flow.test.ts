@@ -11,6 +11,7 @@ import {
   resolveEmergencyMode,
   roomLightingFor,
 } from "../../src/floors/floor-01-scalability/view/effects";
+import { F01_TILE_STYLE } from "../../src/floors/floor-01-scalability/view/floorSurface";
 import {
   DIALOGUE_DISMISS_DISTANCE,
   F01_OFFICE_PROPS,
@@ -26,6 +27,18 @@ import {
 } from "../../src/floors/floor-01-scalability/view/runtime";
 
 describe("Floor 1 intern flow", () => {
+  it("uses a varied pixel-tile floor pattern aligned to the office grid", () => {
+    expect(F01_TILE_STYLE.patternSize).toBe(F01_TILE_STYLE.tileSize * 2);
+    expect(new Set(F01_TILE_STYLE.colors.tiles).size).toBe(4);
+    expect(F01_TILE_STYLE.tileSize).toBe(48);
+    expect(F01_TILE_STYLE.inset).toEqual({
+      left: 52,
+      top: 94,
+      right: 52,
+      bottom: 52,
+    });
+  });
+
   it("keeps the build console locked until Rhea completes onboarding", () => {
     const quest = new F01QuestProgress();
 

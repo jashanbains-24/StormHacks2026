@@ -5,6 +5,7 @@ import {
   onboardingDialogue,
   outcomeDialogueFor,
 } from "../definition/content";
+import { createTiledFloor } from "./floorSurface";
 import { createGuidance } from "./guidance";
 import {
   F01_OFFICE_PROPS,
@@ -16,6 +17,7 @@ import {
 import { getQuestProgress, getSceneRuntime, parseBuildResult } from "./runtime";
 
 export const createLayout = (ctx: FloorContext): LayoutHandle => {
+  createTiledFloor(ctx);
   createOfficeLayout(ctx, F01_OFFICE_PROPS, SEATED_NPCS);
   const runtime = getSceneRuntime(ctx);
   const quest = getQuestProgress(ctx);

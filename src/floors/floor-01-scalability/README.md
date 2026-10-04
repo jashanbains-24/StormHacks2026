@@ -6,6 +6,8 @@ Canonical design: Client → Load Balancer → 3 Servers.
 
 ## Floor flow
 
+- The floor uses a generated 48 px pixel-tile pattern with subtle four-tile
+  variation, scoped to this floor.
 - Rhea onboards the player as an intern and unlocks the assigned workstation.
 - Her dialogue dismisses when the player leaves conversational range.
 - Guidance arrows lead from Rhea to the workstation, back to the result
