@@ -192,6 +192,43 @@ The dev harness (owned by the integrator) loads any single floor directly by URL
 
 Day-to-day, a floor developer runs the harness, picks their floor, and iterates on `view/` without ever launching the full game.
 
+### Teammate guide: changing one floor's UI
+
+Choose one floor and edit **only** its folder:
+
+| Floor | Owned folder | Preview URL | Suggested branch |
+|---|---|---|---|
+| Tutorial | `src/floors/floor-00-tutorial/` | `/?floor=f00` | `floor/00-tutorial` |
+| Scalability | `src/floors/floor-01-scalability/` | `/?floor=f01` | `floor/01-scalability` |
+| Storage | `src/floors/floor-02-storage/` | `/?floor=f02` | `floor/02-storage` |
+
+For UI work, use these files inside your owned folder:
+
+- `view/layout.ts` — furniture, map layout, NPC placement, and interactables.
+- `view/buildUI.ts` — the floor's build-console presentation.
+- `view/effects.ts` — floor-specific emergency and success effects.
+- `theme.ts` — floor-specific color, spacing, and radius overrides.
+- `assets/manifest.ts` and `assets/` — floor-specific images, spritesheets, and audio.
+- `index.ts` — connects the floor's private files to the shared floor contract. Change it only when exposing another part of your floor module.
+
+Workflow:
+
+1. Create your branch from the shared integration commit using the suggested branch name.
+2. Run `npm run dev`.
+3. Open your preview URL. The lower-left controls can switch between the `calm`, `strained`, `down`, and `fixed` preview states.
+4. Make all changes inside your owned floor folder.
+5. Run `npm run validate:floors` before pushing. The pre-push hook and CI reject edits outside your owned folder on a `floor/NN-*` branch.
+
+Floor code may import only:
+
+- files inside the same floor folder;
+- `src/core/contracts`; and
+- `src/core/ui-kit`.
+
+Do **not** edit shared scenes, core runtime, another floor, `package.json`, the lockfile, global CSS, or shared assets from a floor branch. If the public contract or UI kit is missing something, ask the integrator to add the smallest shared API needed, then rebase your floor branch.
+
+Assets, dialogue IDs, glossary IDs, events, CSS classes, and scene keys must use the floor's namespace (`f00`, `f01`, or `f02`). A teammate should be able to merge any of the three floor branches in any order without resolving a shared-file conflict.
+
 ### Starting a new floor
 
 1. Copy the template folder, rename it with the next number prefix, and set the floor id.
