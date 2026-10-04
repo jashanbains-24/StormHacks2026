@@ -84,7 +84,11 @@ export class UIScene extends Phaser.Scene {
       );
     }
     this.time.delayedCall(4200, () => {
-      if (this.scene.isActive() && this.currentFloor === 0) {
+      if (
+        this.scene.isActive() &&
+        this.currentFloor === 0 &&
+        !tutorial.tutorial.interact
+      ) {
         this.setObjective(tutorial.tutorial.elevator ?? "");
       }
     });
@@ -123,8 +127,6 @@ export class UIScene extends Phaser.Scene {
     );
     this.refreshAlertFrame();
     this.setObjective(
-      content.tutorial.build ??
-    this.objective.setText(
       (floor === 0 ? content.tutorial.interact : content.tutorial.build) ??
         content.tutorial.elevator ??
         `${module.title} — incident queue empty`,
@@ -145,6 +147,13 @@ export class UIScene extends Phaser.Scene {
     const line = this.dialogue.nextSpecialistHint();
     if (!line) return;
     this.showDialogueLine(line);
+    if (this.currentFloor !== 0) return;
+    const tutorial = getFloorByOrder(0).module.definition.content;
+    this.setObjective(
+      tutorial.tutorial.build ??
+        tutorial.tutorial.elevator ??
+        "Orientation complete",
+    );
   }
 
   private showDialogueLine(
@@ -176,16 +185,6 @@ export class UIScene extends Phaser.Scene {
         audio.playClick();
         onChoose(choiceId);
       },
-    if (this.currentFloor === 0) {
-      const content = getFloorByOrder(0).module.definition.content;
-      this.objective.setText(
-        content.tutorial.build ??
-          content.tutorial.elevator ??
-          "Orientation complete",
-      );
-    }
-    this.speech = new SpeechBubble(this, line, this.glossaryById, (entry) =>
-      this.showGlossary(entry),
     );
   }
 
@@ -300,22 +299,13 @@ export class UIScene extends Phaser.Scene {
   private handleProgressionUpdated(): void {
     this.refreshAlertFrame();
     if (!progression.snapshot.floorResults[this.currentFloor]) return;
-    const nextFloor = getNextFloor(this.currentFloor);
-    this.setObjective(
-      nextFloor
-        ? `${nextFloor.module.title} unlocked — take the elevator`
-        : "Incident resolved — elevator available",
-    );
-    this.alertTween?.stop();
-    this.alertFrame.setAlpha(1).setStrokeStyle(3, THEME.colors.success, 0.8);
     if (this.currentFloor === 0) {
       const completion =
         getFloorByOrder(0).module.definition.content.completionDialogue;
       if (completion) {
         this.dialogue.setSpecialistHints([completion]);
       }
-
-      this.objective.setText(
+      this.setObjective(
         "Orientation complete — you are ready to tackle Problem 1",
       );
       this.notification?.dismiss();
@@ -329,7 +319,12 @@ export class UIScene extends Phaser.Scene {
       );
       return;
     }
-    this.objective.setText("Floor 2 unlocked — take the elevator");
+    const nextFloor = getNextFloor(this.currentFloor);
+    this.setObjective(
+      nextFloor
+        ? `${nextFloor.module.title} unlocked — take the elevator`
+        : "Incident resolved — elevator available",
+    );
   }
 
   private handleTutorialCompleted(name: unknown): void {
