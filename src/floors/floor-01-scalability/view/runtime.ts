@@ -22,12 +22,13 @@ export class F01QuestProgress {
   private result?: Pick<F01BuildResult, "id" | "quality">;
   private hintIndex = 0;
 
-  constructor(pendingCanonicalDebrief = false) {
-    if (!pendingCanonicalDebrief) return;
+  constructor(pendingCanonicalDebrief = false, completedCanonical = false) {
+    if (!pendingCanonicalDebrief && !completedCanonical) return;
     this.introducedByRhea = true;
     this.introductionDismissed = true;
     this.consoleOpened = true;
-    this.awaitingDebrief = true;
+    this.awaitingDebrief = pendingCanonicalDebrief;
+    this.elevatorHandoff = !pendingCanonicalDebrief;
     this.result = { id: "canonical", quality: "canonical" };
   }
 
@@ -139,6 +140,7 @@ export const getQuestProgress = (ctx: FloorContext): F01QuestProgress => {
     quest = new F01QuestProgress(
       ctx.progression.handoffPending(ctx.floorOrder) &&
         ctx.progression.resultFor(ctx.floorOrder)?.quality === "canonical",
+      ctx.progression.resultFor(ctx.floorOrder)?.quality === "canonical",
     );
     questByGame.set(game, quest);
   }

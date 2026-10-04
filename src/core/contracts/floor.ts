@@ -8,6 +8,9 @@ import type {
 
 export const FLOOR_CONTRACT_VERSION = 1;
 
+export type DialogueDismissReason =
+  "acknowledged" | "movement" | "replaced" | "shutdown";
+
 export interface FloorDialogueLine {
   id: string;
   speaker: "manager" | "specialist" | "system";
@@ -156,7 +159,10 @@ export interface FloorContext {
   };
   readonly dialogue: {
     showSpecialist(): void;
-    showSequence(lines: FloorDialogueLine[], onDismiss?: () => void): void;
+    showSequence(
+      lines: FloorDialogueLine[],
+      onDismiss?: (reason: DialogueDismissReason) => void,
+    ): void;
     dismiss(): void;
     showLine(line: FloorDialogueLine, onDismiss?: () => void): void;
     showChoice(

@@ -123,7 +123,7 @@ export class FloorScene extends Phaser.Scene {
           gameEvents.emit("dialogue:specialist", floor.module.id),
         showSequence: (lines, onDismiss) =>
           gameEvents.emit("dialogue:sequence", lines, onDismiss),
-        dismiss: () => gameEvents.emit("dialogue:dismiss"),
+        dismiss: () => gameEvents.emit("dialogue:dismiss", "replaced"),
         showLine: (line, onDismiss) => {
           audio.playClick();
           gameEvents.emit("dialogue:line", line, onDismiss);

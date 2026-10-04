@@ -20,6 +20,39 @@ class MemoryStorage {
 }
 
 describe("ProgressionStore", () => {
+  it("gates each upward destination until its prerequisite is actually complete", () => {
+    const store = new ProgressionStore(new MemoryStorage());
+    expect(floorLockReason(0, store.snapshot)).toBeUndefined();
+    expect(floorLockReason(1, store.snapshot)).toBe("orientation");
+    expect(floorLockReason(2, store.snapshot)).toBe("orientation");
+    store.completeFloor(0, "canonical", []);
+    expect(floorLockReason(1, store.snapshot)).toBeUndefined();
+    expect(floorLockReason(2, store.snapshot)).toBe("canonical");
+    store.completeFloor(1, "partial", ["Missing redundancy"]);
+    expect(floorLockReason(2, store.snapshot)).toBe("canonical");
+    store.completeFloor(1, "canonical", []);
+    expect(floorLockReason(2, store.snapshot)).toBe("debrief");
+    store.confirmHandoff(1);
+    expect(floorLockReason(2, store.snapshot)).toBeUndefined();
+  });
+
+  it("clears saved results, flags, and session achievements for a new game", () => {
+    const storage = new MemoryStorage();
+    const store = new ProgressionStore(storage);
+    store.completeFloor(0, "canonical", []);
+    store.completeFloor(1, "canonical", []);
+    store.confirmHandoff(1);
+    store.reset();
+    expect(store.snapshot).toEqual({
+      unlockedFloor: 1,
+      floorResults: {},
+      flags: {},
+    });
+    expect(store.wasCompletedThisSession(1)).toBe(false);
+    expect(new ProgressionStore(storage).snapshot).toEqual(store.snapshot);
+    expect(floorLockReason(2, store.snapshot)).toBe("orientation");
+  });
+
   it("keeps partial attempts locked while preserving their tech debt", () => {
     const storage = new MemoryStorage();
     const store = new ProgressionStore(storage);
@@ -48,6 +81,7 @@ describe("ProgressionStore", () => {
   it("keeps persisted completion separate from this session's resolution", () => {
     const storage = new MemoryStorage();
     const store = new ProgressionStore(storage);
+    store.completeFloor(0, "canonical", []);
     store.completeFloor(1, "canonical", []);
 
     expect(store.wasCompletedThisSession(1)).toBe(true);
@@ -69,6 +103,7 @@ describe("ProgressionStore", () => {
     expect(store.wasCompletedThisSession(1)).toBe(true);
     expect(store.wasCanonicallyCompletedThisSession(1)).toBe(false);
 
+    store.completeFloor(0, "canonical", []);
     store.completeFloor(1, "canonical", []);
     expect(store.wasCanonicallyCompletedThisSession(1)).toBe(true);
   });
@@ -76,6 +111,7 @@ describe("ProgressionStore", () => {
   it("keeps the current visit in memory and clears the data floor on reload", () => {
     const storage = new MemoryStorage();
     const store = new ProgressionStore(storage);
+    store.completeFloor(0, "canonical", []);
     store.completeFloor(1, "canonical", []);
     store.confirmHandoff(1);
     store.setFlag("floor2.cacheChoice", "local");
@@ -117,6 +153,7 @@ describe("ProgressionStore", () => {
   it("keeps a completed canonical unlock when revisiting and trying a partial design", () => {
     const storage = new MemoryStorage();
     const store = new ProgressionStore(storage);
+    store.completeFloor(0, "canonical", []);
     store.completeFloor(1, "canonical", []);
     store.confirmHandoff(1);
     store.completeFloor(1, "partial", ["No spare capacity."]);

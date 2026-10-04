@@ -4,6 +4,7 @@ const state = vi.hoisted(() => ({
   floorResults: {} as Record<number, { quality: string }>,
   canonicalThisSession: false,
   speech: vi.fn(),
+  objective: vi.fn(),
   pressedE: false,
   checklistOpen: false,
   checklistEntries: [] as { id: string; completed: boolean }[],
@@ -127,7 +128,9 @@ vi.mock("../../src/ui/TaskChecklist", () => ({
       state.checklistOpen = false;
     }
     setVisible() {}
-    setObjective() {}
+    setObjective(message: string) {
+      state.objective(message);
+    }
     setEntries(entries: typeof state.checklistEntries) {
       state.checklistEntries = entries;
     }
@@ -142,6 +145,30 @@ import { content } from "../../src/floors/floor-01-scalability/definition/conten
 import { beginModal } from "../../src/core/ui-kit/modal";
 
 describe("onboarding HUD lifecycle", () => {
+  it("restores the completed lobby objective without replaying onboarding", () => {
+    state.floorResults[0] = { quality: "canonical" };
+    const ui = new UIScene();
+    ui.create();
+    gameEvents.emit("floor:changed", 0);
+    expect(state.objective).toHaveBeenLastCalledWith(
+      "Orientation complete — you are ready to tackle Problem 1",
+    );
+    expect(state.speech).not.toHaveBeenCalled();
+  });
+
+  it("reports cancellation when a sequence is closed or the player moves", () => {
+    const ui = new UIScene();
+    ui.create();
+    const onDismiss = vi.fn();
+    gameEvents.emit("dialogue:sequence", content.specialistHints, onDismiss);
+    ui.input.keyboard!.emit("keydown-ESC");
+    expect(onDismiss).toHaveBeenLastCalledWith("replaced");
+    gameEvents.emit("dialogue:sequence", content.specialistHints, onDismiss);
+    gameEvents.emit("player:moved");
+    expect(onDismiss).toHaveBeenLastCalledWith("movement");
+    expect(onDismiss).not.toHaveBeenCalledWith("acknowledged");
+  });
+
   beforeEach(() => {
     gameEvents.removeAllListeners();
     new UIScene().game.events.removeAllListeners();

@@ -31,7 +31,9 @@ The shared FloorScene validates access again before travelling.
 
 Floor 2 requires a canonical Floor 1 result and Rhea's debrief. Partial results
 stay locked. New canonical results save `floor1.handoff=pending`; Rhea confirms
-the handoff when her existing debrief dismissal callback runs. Refreshing while
+the handoff only after the final debrief page is acknowledged with Done/E.
+Walking away, opening the checklist, or closing X/Esc cancels the conversation
+without completing the briefing or handoff. Refreshing while
 pending restores Rhea's debrief, including its guidance arrow. A finished
 canonical handoff keeps Floor 2 unlocked after refresh, as requested. Later
 partial retries preserve that earlier canonical completion. Legacy saved
@@ -41,12 +43,28 @@ Floor 2. Floor 2's incident still resets on refresh, per its original handoff.
 Browser checks used temporary progression fixtures and restored the original
 player save afterward. Verified keyboard/numpad and mouse selection, locks,
 travel to Floors 0/1/2, modal closing, pending-debrief recovery, and saved unlock.
-The generic regression suite now contains 96 passing tests. Type-check,
+The generic regression suite now contains 103 passing tests. Type-check,
 production build, and floor boundary validation pass. Changed files pass
 Prettier; the full check still reports the five existing formatting warnings in
 AGENTS.md, floorC_changesv2.md, LOBBY_SPEC.md, PARALLEL_FLOOR_ARCHITECTURE.md, and
 Floor 2's definition/incidentFlow.ts. There is no dedicated lint script;
 TypeScript and the floor validator provide the current diagnostics.
+
+## Fresh starts and saved games
+
+The title screen used to mix a new lobby with saved results, which made fresh
+starts look pre-completed. Enter, the play dot, and the New Game text now reset
+progression and build drafts. A separate Continue Saved Game button appears when
+results exist and preserves the requested canonical unlock across refresh.
+Continued lobbies show their completed objective; restored Floor 1 handoffs use
+matching quest state and elevator guidance. Floor 1's puzzle and effects remain
+unchanged. Legacy Floor 1 saves imply prior orientation when migrated.
+
+Upward travel to Floor 1 requires the completed preliminary form; Floor 2 also
+requires the canonical stress test and Rhea's finished debrief. Returning to a
+lower floor remains available. The selector and runtime both validate the same
+rules. Regression tests cover fresh/continued starts, each progression gate,
+restored quest guidance, and cancelled conversations.
 
 ## Checklist
 

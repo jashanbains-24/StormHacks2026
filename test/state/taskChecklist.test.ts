@@ -7,6 +7,15 @@ import { tasks } from "../../src/floors/floor-01-scalability/definition/tasks";
 import { taskUpdatesForStep } from "../../src/floors/floor-02-storage/definition/tasks";
 
 describe("task checklist", () => {
+  it("restores a genuine completed handoff with consistent quest guidance", () => {
+    const quest = new F01QuestProgress(false, true);
+    expect(quest.hasMetRhea).toBe(true);
+    expect(quest.hasOpenedConsole).toBe(true);
+    expect(quest.needsDebrief).toBe(false);
+    expect(quest.handoffReady).toBe(true);
+    expect(quest.guidanceTarget).toBe("elevator");
+  });
+
   it("reopens repeatable reviews when another attempt requires one", () => {
     const store = new TaskChecklistStore();
     store.track(1, tasks.debrief, true);

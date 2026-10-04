@@ -11,6 +11,8 @@ export const ELEVATOR_COPY = {
 };
 
 export const FLOOR_LOCK_MESSAGES: Record<FloorLockReason, string> = {
+  orientation:
+    "Complete your preliminary form with Maya before going upstairs.",
   canonical:
     "Solve Floor 1's load-balancer challenge with a stable, redundant architecture to unlock this floor.",
   debrief: "Return to Rhea on Floor 1 for your debrief before continuing.",

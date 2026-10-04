@@ -128,7 +128,7 @@ export class UIScene extends Phaser.Scene {
       this.checklist.close();
       return;
     }
-    this.dismissDialogue();
+    this.dismissDialogue("replaced");
   }
 
   private handleFloorChanged(floor: number): void {
@@ -159,7 +159,18 @@ export class UIScene extends Phaser.Scene {
         content.tutorial.elevator ??
         `${module.title} — incident queue empty`,
     );
-    if (floor === 0 && content.managerAlert && !this.tutorialWelcomeShown) {
+    if (floor === 0 && progression.snapshot.floorResults[0]) {
+      this.dialogue.setSpecialistHints(
+        content.completionDialogue ? [content.completionDialogue] : [],
+      );
+      this.setObjective(content.tutorial.elevator ?? "Orientation complete");
+    }
+    if (
+      floor === 0 &&
+      !progression.snapshot.floorResults[0] &&
+      content.managerAlert &&
+      !this.tutorialWelcomeShown
+    ) {
       this.tutorialWelcomeShown = true;
       this.showDialogueLine(content.managerAlert);
     }
@@ -180,7 +191,7 @@ export class UIScene extends Phaser.Scene {
 
   private showDialogueSequence(
     lines: FloorDialogueLine[],
-    onDismiss?: () => void,
+    onDismiss?: (reason: DialogueDismissReason) => void,
   ): void {
     if (lines.length === 0) return;
     audio.playClick();

@@ -44,6 +44,15 @@ const withoutDataFloorProgress = (
   const floor1Solved =
     floorResults[1]?.quality === "canonical" &&
     flags[handoffFlagFor(1)] !== "pending";
+  // Older versions allowed Floor 1 before recording orientation. Preserve a
+  // genuine saved Floor 1 achievement when migrating those games.
+  if (floorResults[1] && !floorResults[0]) {
+    floorResults[0] = {
+      quality: "canonical",
+      debtNotes: [],
+      completedAt: floorResults[1].completedAt,
+    };
+  }
   return {
     unlockedFloor: Math.min(state.unlockedFloor, floor1Solved ? 2 : 1),
     floorResults,

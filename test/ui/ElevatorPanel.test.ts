@@ -110,6 +110,7 @@ describe("elevator selection", () => {
       press(scene, "Enter");
     }
     expect(onTravel).not.toHaveBeenCalled();
+    store.completeFloor(0, "canonical", []);
     press(scene, "End", "Numpad1");
     press(scene, "Enter");
     expect(onTravel).toHaveBeenCalledExactlyOnceWith(1);

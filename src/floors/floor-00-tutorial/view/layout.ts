@@ -218,7 +218,7 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
   bottomWaitingDrew.setDepth(755);
   ctx.scene.physics.add.collider(ctx.player, bottomWaitingDrew);
 
-  let hasMetMaya = false;
+  let hasMetMaya = formCompleted;
   ctx.addInteractable({
     id: "f00:seat-row-a",
     label: "Take a seat and fill out your information",

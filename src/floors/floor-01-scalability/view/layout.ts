@@ -60,8 +60,9 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
       if (quest.needsDebrief) {
         const result = quest.latestResult;
         if (!result) return;
-        ctx.dialogue.showSequence(outcomeDialogueFor(result.id), () => {
+        ctx.dialogue.showSequence(outcomeDialogueFor(result.id), (reason) => {
           runtime.dialogueOpen = false;
+          if (reason !== "acknowledged") return;
           quest.finishDebrief();
           if (result.id === "canonical") {
             ctx.progression.confirmHandoff(ctx.floorOrder);
@@ -80,9 +81,10 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
       }
 
       if (!quest.hasMetRhea) {
-        quest.completeIntroduction();
-        ctx.dialogue.showSequence(onboardingDialogue, () => {
+        ctx.dialogue.showSequence(onboardingDialogue, (reason) => {
           runtime.dialogueOpen = false;
+          if (reason !== "acknowledged") return;
+          quest.completeIntroduction();
           quest.finishIntroduction();
           trackQuestTasks(ctx, quest);
           ctx.hud.showToast(

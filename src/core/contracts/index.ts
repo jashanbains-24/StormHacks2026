@@ -3,6 +3,7 @@ export {
   type AssetManifest,
   type BuildUIHandle,
   type DiscoveredFloor,
+  type DialogueDismissReason,
   type EffectsHandle,
   type FloorContent,
   type FloorContext,

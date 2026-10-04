@@ -1,7 +1,8 @@
-import type { FloorDialogueLine } from "../core/contracts";
-
-export type DialogueDismissReason =
-  "acknowledged" | "movement" | "replaced" | "shutdown";
+import type {
+  DialogueDismissReason,
+  FloorDialogueLine,
+} from "../core/contracts";
+export type { DialogueDismissReason } from "../core/contracts";
 
 interface DialogueSession {
   lines: readonly FloorDialogueLine[];
