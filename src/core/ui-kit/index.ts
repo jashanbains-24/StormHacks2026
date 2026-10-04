@@ -26,3 +26,12 @@ export const colorHex = (color: number): string =>
 export type UiContainer = Phaser.GameObjects.Container;
 export type UiGameObject = Phaser.GameObjects.GameObject;
 export type UiRectangle = Phaser.GameObjects.Rectangle;
+
+export { createEmergencyEffects, type EmergencyEffects } from "./emergency";
+export {
+  createAlarmPath,
+  fixtureRotationFor,
+  roomLightingFor,
+  type EmergencyMode,
+} from "./emergencyLighting";
+export type { EmergencyStaff } from "./emergencyStaff";

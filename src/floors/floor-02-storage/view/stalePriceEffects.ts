@@ -450,7 +450,9 @@ export const createStalePriceEffects = (
   ctx.addUpdater(tick);
 
   const destroy = (): void => {
+    if (!alive) return;
     alive = false;
+    ctx.scene.events.off("shutdown", destroy);
     ctx.scene.events.off(INCIDENT_VISUAL_EVENT, applyVisualState);
     ctx.scene.events.off(CACHE_MARKERS_EVENT, applyMarkers);
     ctx.scene.events.off(DB_FLASH_EVENT, flashDatabase);

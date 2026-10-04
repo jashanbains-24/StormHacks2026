@@ -21,6 +21,8 @@ animations, camera shake, and running staff intact.
 - The objective banner opens a cumulative checklist. Stable tasks appear from
   gameplay milestones, check off automatically, and remain available across
   floors. Close with the banner, X, or Esc; longer lists have previous/next pages.
+- Floor 2 shares Floor 1's emergency lighting, sirens, shaking, and panicked
+  ambient staff, then returns to calm when the incident resolves.
 
 ## Elevator and progression
 
@@ -43,7 +45,7 @@ Floor 2. Floor 2's incident still resets on refresh, per its original handoff.
 Browser checks used temporary progression fixtures and restored the original
 player save afterward. Verified keyboard/numpad and mouse selection, locks,
 travel to Floors 0/1/2, modal closing, pending-debrief recovery, and saved unlock.
-The generic regression suite now contains 103 passing tests. Type-check,
+The generic regression suite now contains 107 passing tests. Type-check,
 production build, and floor boundary validation pass. Changed files pass
 Prettier; the full check still reports the five existing formatting warnings in
 AGENTS.md, floorC_changesv2.md, LOBBY_SPEC.md, PARALLEL_FLOOR_ARCHITECTURE.md, and
@@ -90,10 +92,33 @@ partial-result checklist, page navigation, and Dana's successful choice adding
 Sam's task. Browser tests used temporary fixtures and restored player progression.
 The generic feature tests also cover all storage task stages and repeat reviews.
 
+## Shared emergency atmosphere
+
+The public UI kit now owns `createEmergencyEffects`, with focused lighting,
+staff, and effect-lifetime helpers. Floor 1 uses the same room colors, eight
+sirens, pulse timings, shake strength, and panic routes as before. Its challenge,
+office layout, and incident rules are unchanged.
+
+Floor 2 supplies three ambient staff routes through its clear aisles. Dana,
+Sam, and Priya remain stationary. Its existing equipment effects and puzzles
+remain intact. Critical, inconsistent, and warming states keep the emergency
+atmosphere. A successful one-minute TTL switches to green lights and calm staff;
+Dana's final acknowledgement completes the existing wrap-up. Standby before
+Floor 1 completion stays quiet. Preview overrides and reduced-motion behavior
+are supported. Camera shake pauses while puzzle/elevator modals are open.
+
+Mode changes and scene shutdown clean up timers, tweens, overlays, and listeners
+without destroying the staff. The generic feature tests cover state mapping,
+mode transitions, cleanup, multiple modals, and reduced motion.
+
+Live checks used the floor harness and temporary fixtures to open NPC interactions,
+then mouse input to complete Dana's cache choice, Sam's shared-cache puzzle,
+Priya's TTL puzzle, and Dana's wrap-up. Verified red-to-green transition, calm
+movement, stopped shaking, refresh resetting Floor 2's incident, quiet standby,
+and Floor 1's original panicked staff and sirens. Player saves were restored
+afterward. Browser console had no errors.
+
 ## Remaining sequence
 
-1. Give Floor 2 the same emergency mood as Floor 1 through reusable presentation
-   helpers: flashing sirens, shake, and panicked staff. Preserve its equipment
-   effects, and return to calm on resolution.
-2. Run the complete game flow, check for the teammate's newer main changes,
+1. Run the complete game flow, check for the teammate's newer main changes,
    integrate them as needed, and prepare the PR.
