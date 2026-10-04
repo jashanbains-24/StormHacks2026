@@ -19,8 +19,18 @@ export class F01QuestProgress {
   private consoleOpened = false;
   private awaitingDebrief = false;
   private elevatorHandoff = false;
-  private result?: F01BuildResult;
+  private result?: Pick<F01BuildResult, "id" | "quality">;
   private hintIndex = 0;
+
+  constructor(pendingCanonicalDebrief = false, completedCanonical = false) {
+    if (!pendingCanonicalDebrief && !completedCanonical) return;
+    this.introducedByRhea = true;
+    this.introductionDismissed = true;
+    this.consoleOpened = true;
+    this.awaitingDebrief = pendingCanonicalDebrief;
+    this.elevatorHandoff = !pendingCanonicalDebrief;
+    this.result = { id: "canonical", quality: "canonical" };
+  }
 
   get consoleUnlocked(): boolean {
     return this.introducedByRhea && !this.awaitingDebrief;
@@ -30,11 +40,15 @@ export class F01QuestProgress {
     return this.introducedByRhea;
   }
 
+  get hasOpenedConsole(): boolean {
+    return this.consoleOpened;
+  }
+
   get handoffReady(): boolean {
     return this.elevatorHandoff;
   }
 
-  get latestResult(): F01BuildResult | undefined {
+  get latestResult(): Pick<F01BuildResult, "id" | "quality"> | undefined {
     return this.result;
   }
 
@@ -123,7 +137,11 @@ export const getQuestProgress = (ctx: FloorContext): F01QuestProgress => {
   const game = ctx.scene.game;
   let quest = questByGame.get(game);
   if (!quest) {
-    quest = new F01QuestProgress();
+    quest = new F01QuestProgress(
+      ctx.progression.handoffPending(ctx.floorOrder) &&
+        ctx.progression.resultFor(ctx.floorOrder)?.quality === "canonical",
+      ctx.progression.resultFor(ctx.floorOrder)?.quality === "canonical",
+    );
     questByGame.set(game, quest);
   }
   return quest;

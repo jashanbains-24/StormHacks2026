@@ -2,7 +2,7 @@ export const THEME = {
   colors: {
     ink: 0x1f2933,
     paper: 0xf7f3e8,
-    officeFloor: 0xd8c9aa,
+    officeFloor: 0x293442,
     officeWall: 0x6d7f8f,
     alert: 0xc73e3a,
     alertDark: 0x742a27,

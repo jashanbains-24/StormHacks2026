@@ -1,27 +1,15 @@
 import type { FloorContext } from "../../../core/contracts";
+import type { EmergencyStaff } from "../../../core/ui-kit";
+import { STAFF } from "../definition/staff";
 
-const STAFF = [
-  {
-    id: "f02-maintenance-tech",
-    texture: "ambient-3",
-    x: 248,
-    y: 646,
-  },
-  {
-    id: "f02-cache-operator",
-    texture: "ambient-1",
-    x: 1188,
-    y: 620,
-  },
-] as const;
-
-export const createDataCenterStaff = (ctx: FloorContext): void => {
-  STAFF.forEach((member) => {
-    const npc = ctx.addNpc(member.x, member.y, member.id, {
-      texture: member.texture,
+export const createDataCenterStaff = (ctx: FloorContext): EmergencyStaff[] =>
+  STAFF.map((plan) => {
+    const npc = ctx.addNpc(plan.x, plan.y, plan.id, {
+      texture: plan.texture,
       animationKey: null,
-      staticBody: true,
+      staticBody: false,
     });
     ctx.scene.physics.add.collider(ctx.player, npc);
+    ctx.addUpdater(() => npc.updateMovementAnimation());
+    return { npc, plan };
   });
-};

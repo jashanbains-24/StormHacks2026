@@ -25,18 +25,14 @@ class PreferenceStore {
     return this.snapshot;
   }
 
-  toggleReducedMotion(): Preferences {
-    this.value.reducedMotion = !this.value.reducedMotion;
-    this.persist();
-    return this.snapshot;
-  }
-
   private load(): Preferences {
     if (typeof window === "undefined") return defaults();
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (!saved) return defaults();
     try {
-      return { ...defaults(), ...(JSON.parse(saved) as Partial<Preferences>) };
+      const parsed = JSON.parse(saved) as Partial<Preferences> | null;
+      // The removed motion button's saved override must not suppress effects.
+      return { ...defaults(), muted: parsed?.muted === true };
     } catch {
       return defaults();
     }
@@ -44,7 +40,10 @@ class PreferenceStore {
 
   private persist(): void {
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(this.value));
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ muted: this.value.muted }),
+      );
     }
   }
 }

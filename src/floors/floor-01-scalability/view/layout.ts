@@ -1,5 +1,9 @@
 import type { FloorContext, LayoutHandle } from "../../../core/contracts";
-import { colorHex, createOfficeLayout } from "../../../core/ui-kit";
+import {
+  bindNearbyNameLabel,
+  colorHex,
+  createOfficeLayout,
+} from "../../../core/ui-kit";
 import {
   content,
   onboardingDialogue,
@@ -15,12 +19,14 @@ import {
   SEATED_NPCS,
 } from "./plan";
 import { getQuestProgress, getSceneRuntime, parseBuildResult } from "./runtime";
+import { trackQuestTasks } from "./taskProgress";
 
 export const createLayout = (ctx: FloorContext): LayoutHandle => {
   createTiledFloor(ctx);
   createOfficeLayout(ctx, F01_OFFICE_PROPS, SEATED_NPCS);
   const runtime = getSceneRuntime(ctx);
   const quest = getQuestProgress(ctx);
+  trackQuestTasks(ctx, quest);
 
   for (const plan of ROAMING_NPCS) {
     const npc = ctx.addNpc(plan.x, plan.y, plan.id, {
@@ -36,7 +42,7 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
     texture: "specialist",
   });
   ctx.scene.physics.add.collider(ctx.player, specialist);
-  ctx.scene.add
+  const nameLabel = ctx.scene.add
     .text(specialist.x, specialist.y - 54, "Rhea Boot", {
       color: colorHex(ctx.theme.colors.ink),
       fontFamily: ctx.theme.fonts.family,
@@ -46,6 +52,7 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
     })
     .setOrigin(0.5, 1)
     .setDepth(600);
+  bindNearbyNameLabel(ctx, nameLabel, specialist);
   ctx.addInteractable({
     id: "f01:specialist",
     label: "Talk to Rhea",
@@ -58,10 +65,12 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
       if (quest.needsDebrief) {
         const result = quest.latestResult;
         if (!result) return;
-        ctx.dialogue.showSequence(outcomeDialogueFor(result.id), () => {
+        ctx.dialogue.showSequence(outcomeDialogueFor(result.id), (reason) => {
           runtime.dialogueOpen = false;
+          if (reason !== "acknowledged") return;
           quest.finishDebrief();
           if (result.id === "canonical") {
+            ctx.progression.confirmHandoff(ctx.floorOrder);
             ctx.hud.setObjective(
               "Incident resolved: take the elevator to your next assignment",
             );
@@ -71,15 +80,18 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
             );
             ctx.hud.showToast("Workstation unlocked for another attempt.");
           }
+          trackQuestTasks(ctx, quest);
         });
         return;
       }
 
       if (!quest.hasMetRhea) {
-        quest.completeIntroduction();
-        ctx.dialogue.showSequence(onboardingDialogue, () => {
+        ctx.dialogue.showSequence(onboardingDialogue, (reason) => {
           runtime.dialogueOpen = false;
+          if (reason !== "acknowledged") return;
+          quest.completeIntroduction();
           quest.finishIntroduction();
+          trackQuestTasks(ctx, quest);
           ctx.hud.showToast(
             "Intern access granted. Your workstation is the empty desk at the right end of the top row.",
           );
@@ -108,6 +120,7 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
     if (!result) return;
     runtime.dialogueOpen = false;
     quest.recordResult(result);
+    trackQuestTasks(ctx, quest);
     ctx.hud.setObjective(
       "Attempt evaluated: close the console and debrief with Rhea",
     );

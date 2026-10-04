@@ -13,7 +13,12 @@ const floor: FloorModule = {
   title: "Floor 2: Data Storage / Caching",
   category: "Data Storage / Caching",
   definition: { content, incident },
-  view: { createLayout, createBuildUI, createEffects },
+  view: {
+    createLayout,
+    createBuildUI,
+    createEffects,
+    replacesDefaultEmergencyEffects: true,
+  },
   assets,
   theme,
 };

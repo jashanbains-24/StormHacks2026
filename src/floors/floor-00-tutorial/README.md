@@ -3,7 +3,7 @@
 Owner scope: everything in this folder.
 
 This is the Stack Never Flow Inc. orientation floor. The opening manager speech
-introduces WASD/arrow movement, mouse controls, and E interactions. Maya Mentor
+introduces WASD/arrow movement, mouse controls, and E interactions. Maya
 then teaches the build console with a deliberately small architecture: a fixed
 `Source Block` connected to every placed `Destination Block`, optionally through
 `Connector Blocks`.

@@ -8,6 +8,9 @@ import type {
 
 export const FLOOR_CONTRACT_VERSION = 1;
 
+export type DialogueDismissReason =
+  "acknowledged" | "movement" | "replaced" | "shutdown";
+
 export interface FloorDialogueLine {
   id: string;
   speaker: "manager" | "specialist" | "system";
@@ -28,6 +31,13 @@ export interface FloorGlossaryEntry {
   definition: string;
   analogy?: string;
   realWorld?: string;
+}
+
+export interface FloorTask {
+  id: string;
+  label: string;
+  targetFloor?: number;
+  repeatable?: boolean;
 }
 
 export interface FloorContent {
@@ -145,10 +155,14 @@ export interface FloorContext {
   readonly hud: {
     showToast(message: string): void;
     setObjective(message: string): void;
+    trackTask(task: FloorTask, completed?: boolean): void;
   };
   readonly dialogue: {
     showSpecialist(): void;
-    showSequence(lines: FloorDialogueLine[], onDismiss?: () => void): void;
+    showSequence(
+      lines: FloorDialogueLine[],
+      onDismiss?: (reason: DialogueDismissReason) => void,
+    ): void;
     dismiss(): void;
     showLine(line: FloorDialogueLine, onDismiss?: () => void): void;
     showChoice(
@@ -166,6 +180,8 @@ export interface FloorContext {
     ): { quality: DesignQuality; debtNotes: string[] } | undefined;
     completedThisSession(order: number): boolean;
     canonicalThisSession(order: number): boolean;
+    handoffPending(order: number): boolean;
+    confirmHandoff(order: number): void;
     report(order: number, quality: DesignQuality, debtNotes: string[]): void;
     flag(name: string): string | undefined;
     setFlag(name: string, value: string): void;

@@ -3,6 +3,12 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../config/dimensions";
 import { THEME, colorHex } from "../config/theme";
 import { BACKGROUND_MUSIC_KEY } from "./PreloadScene";
+import { progression } from "../state/progression";
+import { glossaryStore } from "../state/glossary";
+import {
+  buildDesignStore,
+  tutorialBuildDesignStore,
+} from "../state/buildDesign";
 import { preferences } from "../state/preferences";
 import { audio } from "../systems/AudioSystem";
 
@@ -35,10 +41,12 @@ export class StartMenuScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.hasStarted = false;
     this.cameras.main.setBackgroundColor(MENU_COLORS.skyTop);
     this.drawCity();
     this.createLogo();
     this.createPlayButton();
+    this.createContinueButton();
     this.createSoundToggle();
     this.createMenuDetails();
     this.scheduleTraffic();
@@ -258,14 +266,37 @@ export class StartMenuScene extends Phaser.Scene {
 
   private createPlayButton(): void {
     this.add
-      .text(GAME_WIDTH / 2, 394, "PRESS ENTER OR CLICK THE PLAY DOT", {
-        color: colorHex(MENU_COLORS.syntaxGreen),
+      .text(
+        GAME_WIDTH / 2,
+        394,
+        "NEW GAME — PRESS ENTER OR CLICK THE PLAY DOT",
+        {
+          color: colorHex(MENU_COLORS.syntaxGreen),
+          fontFamily: THEME.fonts.mono,
+          fontSize: "11px",
+          letterSpacing: 1,
+        },
+      )
+      .setOrigin(0.5)
+      .setDepth(30)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerup", this.startGame, this);
+  }
+
+  private createContinueButton(): void {
+    if (!Object.keys(progression.snapshot.floorResults).length) return;
+    this.add
+      .text(GAME_WIDTH / 2, 423, "CONTINUE SAVED GAME", {
+        color: colorHex(THEME.colors.paper),
+        backgroundColor: colorHex(MENU_COLORS.syntaxPanel),
         fontFamily: THEME.fonts.mono,
-        fontSize: "11px",
-        letterSpacing: 1,
+        fontSize: "13px",
+        padding: { x: 14, y: 8 },
       })
       .setOrigin(0.5)
-      .setDepth(30);
+      .setDepth(30)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerup", this.continueGame, this);
   }
 
   private createSoundToggle(): void {
@@ -381,6 +412,19 @@ export class StartMenuScene extends Phaser.Scene {
 
   private startGame(): void {
     if (this.hasStarted) return;
+    progression.reset();
+    glossaryStore.reset();
+    buildDesignStore.reset();
+    tutorialBuildDesignStore.reset();
+    this.launchGame();
+  }
+
+  private continueGame(): void {
+    if (this.hasStarted) return;
+    this.launchGame();
+  }
+
+  private launchGame(): void {
     this.hasStarted = true;
     audio.playStartChime();
     audio.playMusic(BACKGROUND_MUSIC_KEY, {

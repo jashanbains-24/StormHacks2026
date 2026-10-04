@@ -1,9 +1,11 @@
 import type { FloorContext, LayoutHandle } from "../../../core/contracts";
 import {
+  bindNearbyNameLabel,
   colorHex,
   createOfficeLayout,
   type OfficePropPlacement,
 } from "../../../core/ui-kit";
+import { tasks } from "../definition/tasks";
 
 const drawFishTank = (ctx: FloorContext, x: number, y: number): void => {
   const graphics = ctx.scene.add.graphics().setDepth(y + 20);
@@ -101,6 +103,16 @@ const drawWaitingChairRow = (
 };
 
 export const createLayout = (ctx: FloorContext): LayoutHandle => {
+  const formCompleted = Boolean(ctx.progression.resultFor(ctx.floorOrder));
+  ctx.hud.trackTask(tasks.maya, formCompleted);
+  if (formCompleted) {
+    ctx.hud.trackTask(tasks.form, true);
+    ctx.hud.trackTask(tasks.upstairs);
+  }
+  ctx.events.on("tutorial:completed", () => {
+    ctx.hud.trackTask(tasks.form, true);
+    ctx.hud.trackTask(tasks.upstairs);
+  });
   const lobbyProps: OfficePropPlacement[] = [
     { x: 300, y: 190, texture: "desk", scale: 3.5 },
     { x: 300, y: 165, texture: "computer", scale: 2.8, collider: false },
@@ -122,16 +134,16 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
     texture: "specialist",
   });
   ctx.scene.physics.add.collider(ctx.player, mentor);
-  ctx.scene.add
-    .text(766, 382, "Maya Mentor // Platform Coach", {
+  const nameLabel = ctx.scene.add
+    .text(214, 276, "Maya", {
       color: colorHex(ctx.theme.colors.ink),
       fontFamily: ctx.theme.fonts.family,
       fontSize: "15px",
       backgroundColor: colorHex(ctx.theme.colors.panel),
       padding: { x: 7, y: 4 },
     })
-    .setPosition(214, 276)
     .setDepth(600);
+  bindNearbyNameLabel(ctx, nameLabel, mentor);
   ctx.addInteractable({
     id: "f00:mentor",
     label: "Talk to Maya",
@@ -139,6 +151,8 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
     y: mentor.y,
     onInteract: () => {
       hasMetMaya = true;
+      ctx.hud.trackTask(tasks.maya, true);
+      ctx.hud.trackTask(tasks.form);
       ctx.dialogue.showSpecialist();
     },
   });
@@ -205,7 +219,7 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
   bottomWaitingDrew.setDepth(755);
   ctx.scene.physics.add.collider(ctx.player, bottomWaitingDrew);
 
-  let hasMetMaya = false;
+  let hasMetMaya = formCompleted;
   ctx.addInteractable({
     id: "f00:seat-row-a",
     label: "Take a seat and fill out your information",

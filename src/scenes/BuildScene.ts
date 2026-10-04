@@ -3,7 +3,9 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../config/dimensions";
 import { THEME, colorHex } from "../config/theme";
 import { getFloorByOrder } from "../core/runtime/floorRegistry";
+import { beginModal } from "../core/ui-kit/modal";
 import { BUILD_COPY } from "../data/build";
+import { ONBOARDING_QUESTIONS } from "../data/onboarding";
 import { evaluateDesign } from "../sim/evaluator";
 import { createSimulation, tickSimulation } from "../sim/simulation";
 import { evaluateTutorialDesign } from "../sim/tutorialEvaluator";
@@ -46,14 +48,14 @@ export class BuildScene extends Phaser.Scene {
   private statsText!: Phaser.GameObjects.Text;
   private phaseText!: Phaser.GameObjects.Text;
   private saveText!: Phaser.GameObjects.Text;
-  private runButton!: Phaser.GameObjects.Container;
+  private runButton?: Phaser.GameObjects.Container;
   private trafficDots: Phaser.GameObjects.Arc[] = [];
   private outcomePanel?: Phaser.GameObjects.Container;
   private crashCount = 0;
   private floorOrder = 1;
   private evaluatedSinceOpen = false;
   private tutorialMode = false;
-  private tutorialStage: "name" | "confirm" | "questions" = "name";
+  private tutorialStage: "name" | "confirm" | "questions" | "complete" = "name";
   private tutorialName = "";
   private tutorialQuestionIndex = 0;
   private tutorialAnswer = "";
@@ -80,12 +82,23 @@ export class BuildScene extends Phaser.Scene {
     this.trafficDots = [];
     this.outcomePanel = undefined;
     this.crashCount = 0;
+    this.runButton = undefined;
+    this.tutorialStage = "name";
+    this.tutorialName = "";
+    this.tutorialQuestionIndex = 0;
+    this.tutorialAnswer = "";
+    this.tutorialPromptText = undefined;
+    this.tutorialInputText = undefined;
+    this.tutorialCircleDisplay = undefined;
+    this.tutorialActionButton = undefined;
+    this.tutorialSecondaryButton = undefined;
     this.tutorialMode =
       getFloorByOrder(this.floorOrder).module.definition.incident.buildMode ===
       "tutorial";
   }
 
   create(): void {
+    beginModal(this);
     this.input.mouse?.disableContextMenu();
     this.cameras.main.setBackgroundColor(THEME.colors.ink);
     if (this.tutorialMode) {
@@ -152,15 +165,7 @@ export class BuildScene extends Phaser.Scene {
       fontFamily: THEME.fonts.family,
       fontSize: "15px",
     });
-    this.add
-      .text(GAME_WIDTH - 34, 18, "×", {
-        color: colorHex(THEME.colors.white),
-        fontFamily: THEME.fonts.family,
-        fontSize: "34px",
-      })
-      .setOrigin(1, 0)
-      .setInteractive({ useHandCursor: true })
-      .on("pointerup", () => this.closeBuild());
+    this.createCloseControl();
 
     this.add
       .rectangle(GAME_WIDTH / 2, 360, 760, 430, THEME.colors.panel)
@@ -215,11 +220,13 @@ export class BuildScene extends Phaser.Scene {
     this.input.keyboard?.on("keydown-ENTER", this.handleTutorialEnter, this);
   }
 
-  private readonly handleTutorialEnter = (): void => {
+  private readonly handleTutorialEnter = (event: KeyboardEvent): void => {
+    if (event.repeat) return;
     this.submitTutorialInput();
   };
 
   private readonly handleTutorialKey = (event: KeyboardEvent): void => {
+    if (this.tutorialStage === "complete") return;
     if (event.key === "Backspace") {
       if (this.tutorialStage === "name") {
         this.tutorialName = this.tutorialName.slice(0, -1);
@@ -242,6 +249,7 @@ export class BuildScene extends Phaser.Scene {
   };
 
   private refreshTutorialForm(): void {
+    if (this.tutorialStage === "complete") return;
     if (!this.tutorialPromptText || !this.tutorialInputText) return;
     this.tutorialCircleDisplay?.setVisible(
       this.tutorialStage === "questions" && this.tutorialQuestionIndex === 0,
@@ -289,13 +297,8 @@ export class BuildScene extends Phaser.Scene {
       );
       return;
     }
-    const questions = [
-      "How many of the 7 circles are red?",
-      "What is 2 × 5?",
-      "What language are webpages built from?",
-    ];
     this.tutorialPromptText.setText(
-      `Preliminary question ${this.tutorialQuestionIndex + 1} of 3\n${questions[this.tutorialQuestionIndex]}`,
+      `Preliminary question ${this.tutorialQuestionIndex + 1} of ${ONBOARDING_QUESTIONS.length}\n${ONBOARDING_QUESTIONS[this.tutorialQuestionIndex].prompt}`,
     );
     this.tutorialInputText.setText(this.tutorialAnswer || "Type your answer…");
     this.tutorialActionButton = this.createTutorialButton(
@@ -307,6 +310,10 @@ export class BuildScene extends Phaser.Scene {
   }
 
   private submitTutorialInput(): void {
+    if (this.tutorialStage === "complete") {
+      this.closeBuild();
+      return;
+    }
     if (this.tutorialStage === "name") {
       const name = this.tutorialName.trim();
       if (!name) return;
@@ -324,14 +331,15 @@ export class BuildScene extends Phaser.Scene {
     }
     if (this.tutorialStage !== "questions") return;
     const answer = this.tutorialAnswer.trim().toLowerCase();
-    const accepted = [["4", "4/7"], ["10"], ["html"]];
-    if (!accepted[this.tutorialQuestionIndex].includes(answer)) {
+    const question = ONBOARDING_QUESTIONS[this.tutorialQuestionIndex];
+    if (!question.acceptedAnswers.includes(answer)) {
       this.showTutorialError("Not quite — try that one again.");
       return;
     }
     this.tutorialQuestionIndex += 1;
     this.tutorialAnswer = "";
-    if (this.tutorialQuestionIndex === accepted.length) {
+    if (this.tutorialQuestionIndex === ONBOARDING_QUESTIONS.length) {
+      this.tutorialStage = "complete";
       this.completeTutorial();
       return;
     }
@@ -355,10 +363,8 @@ export class BuildScene extends Phaser.Scene {
       message: `Nice work, ${this.tutorialName}! Your preliminary form is approved.`,
       debtNotes: [],
     };
-    progression.completeFloor(this.floorOrder, evaluation.quality, []);
-    gameEvents.emit("progression:updated", progression.snapshot);
-    gameEvents.emit("tutorial:completed", this.tutorialName);
     this.showOutcome(evaluation);
+    gameEvents.emit("tutorial:completed", this.tutorialName);
   }
 
   private createTutorialButton(
@@ -403,19 +409,7 @@ export class BuildScene extends Phaser.Scene {
       fontFamily: THEME.fonts.family,
       fontSize: "15px",
     });
-    this.add
-      .rectangle(GAME_WIDTH - 43, 42, 56, 56, THEME.colors.panelDark, 0.01)
-      .setDepth(CLOSE_CONTROL_DEPTH)
-      .setInteractive({ useHandCursor: true })
-      .on("pointerup", () => this.closeBuild());
-    this.add
-      .text(GAME_WIDTH - 31, 16, "×", {
-        color: colorHex(THEME.colors.white),
-        fontFamily: THEME.fonts.family,
-        fontSize: "34px",
-      })
-      .setOrigin(1, 0)
-      .setDepth(CLOSE_CONTROL_DEPTH + 1);
+    this.createCloseControl();
 
     this.add
       .rectangle(
@@ -480,6 +474,22 @@ export class BuildScene extends Phaser.Scene {
       THEME.colors.alertDark,
       () => this.resetDesign(),
     );
+  }
+
+  private createCloseControl(): void {
+    this.add
+      .rectangle(GAME_WIDTH - 43, 42, 56, 56, THEME.colors.panelDark, 0.01)
+      .setDepth(CLOSE_CONTROL_DEPTH)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerup", () => this.closeBuild());
+    this.add
+      .text(GAME_WIDTH - 31, 16, "×", {
+        color: colorHex(THEME.colors.white),
+        fontFamily: THEME.fonts.family,
+        fontSize: "34px",
+      })
+      .setOrigin(1, 0)
+      .setDepth(CLOSE_CONTROL_DEPTH + 1);
   }
 
   private addComponent(type: PlaceableType, x: number, y: number): void {
@@ -722,7 +732,7 @@ export class BuildScene extends Phaser.Scene {
     this.simulation = createSimulation(design);
     this.running = true;
     this.crashCount = 0;
-    this.runButton.setAlpha(0.45);
+    this.runButton?.setAlpha(0.45);
     this.phaseText.setText("STRESS SCHEDULE ACTIVE");
     this.createTrafficDots();
   }
@@ -774,7 +784,7 @@ export class BuildScene extends Phaser.Scene {
   private showOutcome(evaluation: Evaluation): void {
     this.evaluatedSinceOpen = true;
     this.destroyTrafficDots();
-    this.runButton.setAlpha(1);
+    this.runButton?.setAlpha(1);
     if (evaluation.quality === "canonical") {
       audio.playSuccess();
       this.playCelebration();
@@ -839,7 +849,11 @@ export class BuildScene extends Phaser.Scene {
       112,
       310,
       52,
-      evaluation.quality === "failed" ? BUILD_COPY.edit : BUILD_COPY.close,
+      this.tutorialMode
+        ? "RETURN TO LOBBY [ENTER]"
+        : evaluation.quality === "failed"
+          ? BUILD_COPY.edit
+          : BUILD_COPY.close,
       accent,
       () => {
         if (evaluation.quality === "failed") {
@@ -904,7 +918,7 @@ export class BuildScene extends Phaser.Scene {
     this.outcomePanel?.destroy();
     this.outcomePanel = undefined;
     this.destroyTrafficDots();
-    this.runButton.setAlpha(1);
+    this.runButton?.setAlpha(1);
     this.activeWireFrom = undefined;
     this.activePointer = undefined;
     this.nodes.forEach((node) => node.destroy());
