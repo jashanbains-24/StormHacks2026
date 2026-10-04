@@ -28,6 +28,7 @@ const CANVAS_TOP = 116;
 const CANVAS_RIGHT = GAME_WIDTH - 24;
 const CANVAS_BOTTOM = GAME_HEIGHT - 74;
 const SIMULATION_SPEED = 2.4;
+const CLOSE_CONTROL_DEPTH = 1000;
 
 export class BuildScene extends Phaser.Scene {
   private readonly nodes = new Map<string, BuildNode>();
@@ -64,6 +65,7 @@ export class BuildScene extends Phaser.Scene {
 
     this.restoreDesign();
     this.drawConnections();
+    this.input.keyboard?.on("keydown-ESC", this.closeBuild, this);
 
     this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
       if (!this.activeWireFrom) return;
@@ -80,6 +82,7 @@ export class BuildScene extends Phaser.Scene {
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.input.removeAllListeners();
+      this.input.keyboard?.off("keydown-ESC", this.closeBuild, this);
     });
   }
 
@@ -116,14 +119,18 @@ export class BuildScene extends Phaser.Scene {
       fontSize: "15px",
     });
     this.add
-      .text(GAME_WIDTH - 34, 22, "×", {
+      .rectangle(GAME_WIDTH - 43, 42, 56, 56, THEME.colors.panelDark, 0.01)
+      .setDepth(CLOSE_CONTROL_DEPTH)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerup", () => this.closeBuild());
+    this.add
+      .text(GAME_WIDTH - 31, 16, "×", {
         color: colorHex(THEME.colors.white),
         fontFamily: THEME.fonts.family,
         fontSize: "34px",
       })
       .setOrigin(1, 0)
-      .setInteractive({ useHandCursor: true })
-      .on("pointerup", () => this.closeBuild());
+      .setDepth(CLOSE_CONTROL_DEPTH + 1);
 
     this.add
       .rectangle(
