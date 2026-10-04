@@ -1,9 +1,9 @@
-import type Phaser from "phaser";
-
 import type { FloorContext } from "../../../core/contracts";
-import { colorHex } from "../../../core/ui-kit";
-import { audio } from "../../../systems/AudioSystem";
-import { dismissTermCard } from "../../../ui/TermCard";
+import {
+  colorHex,
+  dismissTermCard,
+  type UiGameObject,
+} from "../../../core/ui-kit";
 import { mountPuzzleShell } from "./puzzleShell";
 
 type TtlChoice = "second" | "minute" | "day";
@@ -137,13 +137,13 @@ export const openPriyaPuzzle = (
     handle.setPosition(nearest.x, trackY);
   };
 
-  handle.on("dragstart", () => audio.playClick());
+  handle.on("dragstart", () => ctx.audio.playClick());
   handle.on("drag", (_pointer: unknown, dragX: number) => {
     const clamped = Math.min(trackX + trackWidth, Math.max(trackX, dragX));
     handle.setPosition(clamped, trackY);
   });
   handle.on("dragend", () => {
-    audio.playClick();
+    ctx.audio.playClick();
     snapTo(handle.x);
   });
 
@@ -201,7 +201,7 @@ export const openPriyaPuzzle = (
   ]);
 
   let feedbackY = 510;
-  const feedbackNodes: Phaser.GameObjects.GameObject[] = [];
+  const feedbackNodes: UiGameObject[] = [];
   let running = false;
 
   const clearFeedback = (): void => {
@@ -214,7 +214,7 @@ export const openPriyaPuzzle = (
   send.on("pointerup", () => {
     if (running) return;
     running = true;
-    audio.playClick();
+    ctx.audio.playClick();
     clearFeedback();
     const choice = selected;
     const result = handlers.onAttempt(CHOICE_ID[choice]);

@@ -1,18 +1,17 @@
-import type Phaser from "phaser";
-
-import { GAME_HEIGHT, GAME_WIDTH } from "../../../config/dimensions";
 import type { FloorContext } from "../../../core/contracts";
-import { colorHex } from "../../../core/ui-kit";
-import { dismissTermCard } from "../../../ui/TermCard";
 import {
+  colorHex,
   createTermFocusGroup,
+  dismissTermCard,
   drawRichText,
   type TermFocusGroup,
-} from "../../../ui/termLabel";
+  type UiContainer,
+  type UiGameObject,
+} from "../../../core/ui-kit";
 import { glossaryById } from "../definition/terms";
 
 export interface PuzzleShell {
-  root: Phaser.GameObjects.Container;
+  root: UiContainer;
   focus: TermFocusGroup;
   panel: { x: number; y: number; width: number; height: number };
   destroy: () => void;
@@ -25,7 +24,7 @@ export interface PuzzleShell {
   ) => {
     width: number;
     height: number;
-    objects: Phaser.GameObjects.GameObject[];
+    objects: UiGameObject[];
   };
 }
 
@@ -38,7 +37,14 @@ export const mountPuzzleShell = (
   const root = ctx.scene.add.container(0, 0).setDepth(1600);
   const focus = createTermFocusGroup(ctx.scene);
   const scrim = ctx.scene.add
-    .rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x0b121b, 0.4)
+    .rectangle(
+      0,
+      0,
+      ctx.scene.scale.width,
+      ctx.scene.scale.height,
+      0x0b121b,
+      0.4,
+    )
     .setOrigin(0)
     .setInteractive();
   const frame = ctx.scene.add
@@ -101,11 +107,13 @@ export const mountPuzzleShell = (
               color: colorHex(ctx.theme.colors.white),
               fontSize: "15px",
               underline: ctx.theme.colors.successLight,
+              reducedMotion: ctx.preferences.reducedMotion,
             }
           : {
               color: colorHex(ctx.theme.colors.ink),
               fontSize: "16px",
               underline: ctx.theme.colors.alertDark,
+              reducedMotion: ctx.preferences.reducedMotion,
             },
         glossaryById,
         focus,

@@ -1,9 +1,11 @@
-import type Phaser from "phaser";
-
 import type { FloorContext } from "../../../core/contracts";
-import { colorHex } from "../../../core/ui-kit";
-import { audio } from "../../../systems/AudioSystem";
-import { dismissTermCard } from "../../../ui/TermCard";
+import {
+  colorHex,
+  dismissTermCard,
+  type UiContainer,
+  type UiGameObject,
+  type UiRectangle,
+} from "../../../core/ui-kit";
 import { mountPuzzleShell } from "./puzzleShell";
 
 export type CachePlacement = "local" | "shared" | "browser";
@@ -56,7 +58,7 @@ export const openSamPuzzle = (
     width: number,
     height: number,
     fill: number,
-  ): Phaser.GameObjects.Rectangle => {
+  ): UiRectangle => {
     const rect = ctx.scene.add
       .rectangle(x, y, width, height, fill)
       .setStrokeStyle(3, ctx.theme.colors.ink);
@@ -106,7 +108,7 @@ export const openSamPuzzle = (
     shared: { x: 530, y: 360 },
     browser: { x: 800, y: 360 },
   };
-  const chips: Record<CachePlacement, Phaser.GameObjects.Container> = {
+  const chips: Record<CachePlacement, UiContainer> = {
     local: ctx.scene.add.container(homes.local.x, homes.local.y),
     shared: ctx.scene.add.container(homes.shared.x, homes.shared.y),
     browser: ctx.scene.add.container(homes.browser.x, homes.browser.y),
@@ -149,12 +151,12 @@ export const openSamPuzzle = (
     root.add(chip);
     shell.richText(term, homes[kind].x - 74, homes[kind].y + 28, 180);
 
-    chip.on("dragstart", () => audio.playClick());
+    chip.on("dragstart", () => ctx.audio.playClick());
     chip.on("drag", (_pointer: unknown, dragX: number, dragY: number) => {
       chip.setPosition(dragX, dragY);
     });
     chip.on("dragend", () => {
-      audio.playClick();
+      ctx.audio.playClick();
       const nearSlot =
         Math.abs(chip.x - slot.x) < 90 && Math.abs(chip.y - slot.y) < 48;
       if (!nearSlot) {
@@ -187,14 +189,14 @@ export const openSamPuzzle = (
     .setInteractive({ useHandCursor: true });
   root.add(send);
 
-  const resultNodes: Phaser.GameObjects.GameObject[] = [];
+  const resultNodes: UiGameObject[] = [];
   const clearResult = (): void => {
     dismissTermCard();
     resultNodes.forEach((node) => node.destroy());
     resultNodes.length = 0;
   };
 
-  const addResult = <T extends Phaser.GameObjects.GameObject>(node: T): T => {
+  const addResult = <T extends UiGameObject>(node: T): T => {
     resultNodes.push(node);
     root.add(node);
     return node;
@@ -309,7 +311,7 @@ export const openSamPuzzle = (
 
   send.on("pointerup", () => {
     if (!placed || resultNodes.length > 0) return;
-    audio.playClick();
+    ctx.audio.playClick();
     const kind = placed;
     const result = handlers.onAttempt(CHOICE_ID[kind]);
     const reveal = (): void => {

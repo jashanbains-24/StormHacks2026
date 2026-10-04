@@ -1,9 +1,10 @@
-import type Phaser from "phaser";
-
-import { GAME_HEIGHT, GAME_WIDTH } from "../../../config/dimensions";
 import type { FloorContext } from "../../../core/contracts";
-import { colorHex } from "../../../core/ui-kit";
-import { openedTermIds, onTermsChanged } from "../../../ui/termMemory";
+import {
+  colorHex,
+  openedTermIds,
+  onTermsChanged,
+  type UiContainer,
+} from "../../../core/ui-kit";
 import {
   applyIncidentChoice,
   beaconFor,
@@ -60,6 +61,8 @@ const visualFor = (state: StalePriceState): IncidentVisualState => {
 };
 
 export const createStalePriceIncident = (ctx: FloorContext): void => {
+  const gameWidth = ctx.scene.scale.width;
+  const gameHeight = ctx.scene.scale.height;
   let state = initialState(ctx);
   let puzzleOpen = false;
   let frozen = false;
@@ -156,7 +159,7 @@ export const createStalePriceIncident = (ctx: FloorContext): void => {
   };
 
   const door = ctx.scene.add
-    .text(GAME_WIDTH - 102, GAME_HEIGHT / 2 + 78, "DOOR OPEN", {
+    .text(gameWidth - 102, gameHeight / 2 + 78, "DOOR OPEN", {
       color: colorHex(ctx.theme.colors.ink),
       backgroundColor: colorHex(ctx.theme.colors.successLight),
       fontFamily: ctx.theme.fonts.mono,
@@ -168,13 +171,7 @@ export const createStalePriceIncident = (ctx: FloorContext): void => {
     .setDepth(900)
     .setVisible(false);
   const doorGlow = ctx.scene.add
-    .circle(
-      GAME_WIDTH - 102,
-      GAME_HEIGHT / 2,
-      18,
-      ctx.theme.colors.success,
-      0.35,
-    )
+    .circle(gameWidth - 102, gameHeight / 2, 18, ctx.theme.colors.success, 0.35)
     .setDepth(240)
     .setVisible(false);
 
@@ -364,7 +361,7 @@ export const createStalePriceIncident = (ctx: FloorContext): void => {
   });
 
   const glossaryButton = ctx.scene.add
-    .text(28, GAME_HEIGHT - 78, "Glossary", {
+    .text(28, gameHeight - 78, "Glossary", {
       color: colorHex(ctx.theme.colors.white),
       backgroundColor: colorHex(ctx.theme.colors.ink),
       fontFamily: ctx.theme.fonts.family,
@@ -375,7 +372,7 @@ export const createStalePriceIncident = (ctx: FloorContext): void => {
     .setDepth(880)
     .setInteractive({ useHandCursor: true });
 
-  let glossaryPanel: Phaser.GameObjects.Container | undefined;
+  let glossaryPanel: UiContainer | undefined;
   const closeGlossary = (): void => {
     glossaryPanel?.destroy();
     glossaryPanel = undefined;

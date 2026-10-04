@@ -3,8 +3,12 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../config/dimensions";
 import { THEME, colorHex } from "../config/theme";
 import type { FloorDialogueLine, FloorGlossaryEntry } from "../core/contracts";
-import { dismissTermCard } from "./TermCard";
-import { createTermFocusGroup, drawRichText } from "./termLabel";
+import {
+  createTermFocusGroup,
+  dismissTermCard,
+  drawRichText,
+} from "../core/ui-kit";
+import { preferences } from "../state/preferences";
 
 const termMark = /\[\[[a-z0-9_.]+\]\]/i;
 
@@ -144,6 +148,7 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
         color: colorHex(THEME.colors.ink),
         fontSize: "19px",
         underline: THEME.colors.alertDark,
+        reducedMotion: preferences.snapshot.reducedMotion,
       },
       glossaryById,
       focus,
@@ -162,6 +167,7 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
           color: colorHex(THEME.colors.white),
           fontSize: "15px",
           underline: THEME.colors.successLight,
+          reducedMotion: preferences.snapshot.reducedMotion,
         },
         glossaryById,
         focus,

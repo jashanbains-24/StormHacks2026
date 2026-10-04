@@ -1,10 +1,131 @@
 import type Phaser from "phaser";
 
-import { THEME, colorHex } from "../config/theme";
-import type { FloorGlossaryEntry } from "../core/contracts";
-import { preferences } from "../state/preferences";
-import { holdTermCard, releaseTermCard, showTermCard } from "./TermCard";
-import { hasOpenedTerm, markTermOpened } from "./termMemory";
+import { GAME_HEIGHT, GAME_WIDTH } from "../../config/dimensions";
+import { THEME, colorHex } from "../../config/theme";
+import type { FloorGlossaryEntry } from "../contracts";
+
+type TermAnchor = Phaser.GameObjects.GameObject &
+  Phaser.GameObjects.Components.GetBounds;
+
+interface ActiveCard {
+  card: Phaser.GameObjects.Container;
+  anchor: TermAnchor;
+  pinned: boolean;
+  closeTimer?: Phaser.Time.TimerEvent;
+  esc?: Phaser.Input.Keyboard.Key;
+  onPointerDown: (pointer: Phaser.Input.Pointer) => void;
+}
+
+let activeCard: ActiveCard | undefined;
+const openedTerms = new Set<string>();
+const termListeners = new Set<() => void>();
+
+export const hasOpenedTerm = (id: string): boolean => openedTerms.has(id);
+
+export const markTermOpened = (id: string): void => {
+  if (openedTerms.has(id)) return;
+  openedTerms.add(id);
+  termListeners.forEach((listener) => listener());
+};
+
+export const openedTermIds = (): string[] => [...openedTerms];
+
+export const onTermsChanged = (listener: () => void): (() => void) => {
+  termListeners.add(listener);
+  return () => termListeners.delete(listener);
+};
+
+export const dismissTermCard = (): void => {
+  if (!activeCard) return;
+  const current = activeCard;
+  activeCard = undefined;
+  current.closeTimer?.remove(false);
+  current.card.scene?.input.off("pointerdown", current.onPointerDown);
+  current.esc?.off("down");
+  current.esc?.destroy();
+  current.card.destroy();
+};
+
+const holdTermCard = (): void => {
+  activeCard?.closeTimer?.remove(false);
+  if (activeCard) activeCard.closeTimer = undefined;
+};
+
+const releaseTermCard = (): void => {
+  if (!activeCard || activeCard.pinned) return;
+  const scene = activeCard.card.scene;
+  activeCard.closeTimer?.remove(false);
+  activeCard.closeTimer = scene.time.delayedCall(220, () => {
+    if (activeCard && !activeCard.pinned) dismissTermCard();
+  });
+};
+
+const showTermCard = (
+  scene: Phaser.Scene,
+  entry: FloorGlossaryEntry,
+  anchor: TermAnchor,
+  pin: boolean,
+): void => {
+  if (activeCard?.anchor === anchor) {
+    activeCard.pinned = activeCard.pinned || pin;
+    holdTermCard();
+    return;
+  }
+
+  dismissTermCard();
+  const bounds = anchor.getBounds();
+  const width = 336;
+  const lines = [
+    entry.definition,
+    entry.analogy ?? "",
+    entry.realWorld ? `Real world: ${entry.realWorld}` : "",
+  ].filter((line) => line.length > 0);
+  const height = 58 + lines.length * 36;
+  let x = bounds.right + 10;
+  let y = bounds.top - 8;
+  if (x + width > GAME_WIDTH - 16) x = Math.max(16, bounds.left - width - 10);
+  if (y + height > GAME_HEIGHT - 16) y = GAME_HEIGHT - height - 16;
+
+  const card = scene.add.container(0, 0).setDepth(2000);
+  const panel = scene.add
+    .rectangle(x, y, width, height, THEME.colors.panel)
+    .setOrigin(0)
+    .setStrokeStyle(3, THEME.colors.ink);
+  const title = scene.add.text(x + 14, y + 10, entry.term, {
+    color: colorHex(THEME.colors.ink),
+    fontFamily: THEME.fonts.family,
+    fontSize: "16px",
+    fontStyle: "bold",
+  });
+  const body = scene.add.text(x + 14, y + 34, lines.join("\n"), {
+    color: colorHex(THEME.colors.ink),
+    fontFamily: THEME.fonts.family,
+    fontSize: "14px",
+    lineSpacing: 4,
+    wordWrap: { width: width - 28 },
+  });
+  card.add([panel, title, body]);
+  card.setSize(width, height);
+  panel.setInteractive();
+  panel.on("pointerover", holdTermCard);
+  panel.on("pointerout", releaseTermCard);
+
+  const onPointerDown = (pointer: Phaser.Input.Pointer): void => {
+    if (!activeCard) return;
+    const cardBounds = panel.getBounds();
+    const anchorBounds = activeCard.anchor.getBounds();
+    const inside =
+      cardBounds.contains(pointer.x, pointer.y) ||
+      anchorBounds.contains(pointer.x, pointer.y);
+    if (!inside) dismissTermCard();
+  };
+  const esc = scene.input.keyboard?.addKey(27);
+  esc?.on("down", dismissTermCard);
+  scene.input.on("pointerdown", onPointerDown);
+  scene.events.once("shutdown", dismissTermCard);
+
+  activeCard = { card, anchor, pinned: pin, esc, onPointerDown };
+};
 
 export interface TermFocusGroup {
   track(target: Phaser.GameObjects.Text, activate: () => void): void;
@@ -60,6 +181,7 @@ export interface RichTextStyle {
   color: string;
   fontSize: string;
   underline: number;
+  reducedMotion: boolean;
 }
 
 export const drawRichText = (
@@ -163,7 +285,7 @@ export const drawRichText = (
     text.on("pointerup", activate);
     focus.track(icon, activate);
 
-    if (!hasOpenedTerm(entry.id) && !preferences.snapshot.reducedMotion) {
+    if (!hasOpenedTerm(entry.id) && !style.reducedMotion) {
       scene.tweens.add({
         targets: icon,
         scale: { from: 1, to: 1.18 },

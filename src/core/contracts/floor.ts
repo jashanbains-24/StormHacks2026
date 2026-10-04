@@ -134,6 +134,7 @@ export interface FloorContext {
     readonly state: FloorPreviewState;
   };
   readonly preferences: {
+    readonly muted: boolean;
     readonly reducedMotion: boolean;
   };
   readonly sim: {
@@ -164,6 +165,7 @@ export interface FloorContext {
     setFlag(name: string, value: string): void;
   };
   readonly audio: {
+    playClick(): void;
     playSuccess(): void;
   };
   readonly events: {

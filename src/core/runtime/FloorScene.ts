@@ -91,6 +91,9 @@ export class FloorScene extends Phaser.Scene {
       theme,
       preview: this.preview,
       preferences: {
+        get muted() {
+          return preferences.snapshot.muted;
+        },
         reducedMotion: preferences.snapshot.reducedMotion,
       },
       sim: {
@@ -130,6 +133,7 @@ export class FloorScene extends Phaser.Scene {
         },
       },
       audio: {
+        playClick: () => audio.playClick(),
         playSuccess: () => audio.playSuccess(),
       },
       events: {

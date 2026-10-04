@@ -82,7 +82,8 @@ Do not drop these when resolving conflicts:
 - `ctx.hud.setObjective`
 - `ctx.dialogue.showLine` and `showChoice`
 - progression `flag` and `setFlag`
-- `ctx.audio.playSuccess`
+- `ctx.preferences.muted`
+- `ctx.audio.playClick` and `playSuccess`
 
 ### Runtime and HUD
 
@@ -108,44 +109,33 @@ The reset and alert gating are covered in
 
 ### Teaching-term UI
 
-Floor 2 currently uses:
+Reusable teaching-term presentation and memory are exposed from:
 
-- `src/ui/TermCard.ts`
-- `src/ui/termLabel.ts`
-- `src/ui/termMemory.ts`
+- `src/core/ui-kit/terms.ts`
+- `src/core/ui-kit/index.ts`
 
-These power inline definitions and the learned-term glossary.
+Floor 2 imports these only through the public `src/core/ui-kit` entry point.
+They power inline definitions and the learned-term glossary.
 
-## Known integration blocker
+## Floor-boundary integration
 
 At the time of this handoff:
 
 - `npm test` passes: 8 files, 33 tests.
 - `npm run typecheck` passes.
-- `npm run validate:floors` fails because several Floor 2 view files import
-  Phaser and shared internals outside the two public core APIs.
+- `npm run validate:floors` passes all three isolated floor modules.
+- `npm run build` passes.
 
-Do not disable or weaken the validator merely to make the command green. Resolve
-the boundary violations during integration:
+The boundary fix must be preserved during conflict resolution:
 
-1. Move/export reusable teaching-term presentation through
-   `src/core/ui-kit`, then have Floor 2 import it from that public API.
-2. Use `ctx.audio` instead of importing `AudioSystem` directly.
-3. Use `ctx.preferences` instead of importing the preferences store directly.
-4. Use scene/context dimensions instead of importing
-   `src/config/dimensions`, or add the smallest additive public context API.
-5. Remove direct `phaser` imports from Floor 2 by using contract-exposed types
-   or floor-local inferred types.
+1. Floor 2 imports teaching-term presentation from `src/core/ui-kit`.
+2. Puzzle sounds use `ctx.audio`.
+3. muted/reduced-motion state comes from `ctx.preferences`.
+4. floor views read dimensions from their scene context.
+5. floor files do not import Phaser directly; public UI-kit type aliases cover
+   the few Phaser presentation types needed by puzzle code.
 
-Affected files reported by the validator include:
-
-- `view/priyaTtlPuzzle.ts`
-- `view/puzzleShell.ts`
-- `view/samCachePuzzle.ts`
-- `view/stalePriceEffects.ts`
-- `view/stalePriceIncident.ts`
-
-After refactoring, every Floor 2 import must pass `npm run validate:floors`.
+Do not disable or weaken the validator during integration.
 
 ## Conflict-resolution order
 

@@ -1,5 +1,4 @@
 import type { FloorContext } from "../../../core/contracts";
-import { preferences } from "../../../state/preferences";
 import {
   CACHE_MARKERS_EVENT,
   CELEBRATE_EVENT,
@@ -130,7 +129,9 @@ const rackColor = (kind: RoomStyle["racks"], index: number): number => {
   return index % 8 === 0 ? COLORS.amber : COLORS.green;
 };
 
-const createAlarm = (): {
+const createAlarm = (
+  isMuted: () => boolean,
+): {
   setLevel: (level: number) => void;
   destroy: () => void;
 } => {
@@ -150,11 +151,7 @@ const createAlarm = (): {
 
   return {
     setLevel: (level: number) => {
-      if (
-        level <= 0 ||
-        preferences.snapshot.muted ||
-        typeof window === "undefined"
-      ) {
+      if (level <= 0 || isMuted() || typeof window === "undefined") {
         stop();
         return;
       }
@@ -181,7 +178,7 @@ export const createStalePriceEffects = (
   ctx: FloorContext,
 ): StalePriceEffectsHandle => {
   const moving = !ctx.preferences.reducedMotion;
-  const alarm = createAlarm();
+  const alarm = createAlarm(() => ctx.preferences.muted);
   const flow = ctx.scene.add.graphics().setDepth(20);
   const dbLights = [0, 1, 2, 3, 4, 5].map((index) =>
     ctx.scene.add
@@ -435,10 +432,10 @@ export const createStalePriceEffects = (
   ctx.scene.events.on(DB_FLASH_EVENT, flashDatabase);
   ctx.scene.events.on(CELEBRATE_EVENT, celebrate);
 
-  let alarmSilenced = preferences.snapshot.muted;
+  let alarmSilenced = ctx.preferences.muted;
   const tick = (): void => {
     if (!alive) return;
-    const muted = preferences.snapshot.muted;
+    const muted = ctx.preferences.muted;
     if (muted && !alarmSilenced) {
       alarm.setLevel(0);
       alarmSilenced = true;
