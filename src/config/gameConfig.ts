@@ -4,6 +4,7 @@ import { BuildScene } from "../scenes/BuildScene";
 import { BootScene } from "../scenes/BootScene";
 import { FloorScene } from "../core/runtime/FloorScene";
 import { PreloadScene } from "../scenes/PreloadScene";
+import { StartMenuScene } from "../scenes/StartMenuScene";
 import { UIScene } from "../scenes/UIScene";
 import { GAME_HEIGHT, GAME_WIDTH } from "./dimensions";
 import { THEME } from "./theme";
@@ -26,5 +27,12 @@ export const createGameConfig = (
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [BootScene, PreloadScene, FloorScene, BuildScene, UIScene],
+  scene: [
+    BootScene,
+    PreloadScene,
+    StartMenuScene,
+    FloorScene,
+    BuildScene,
+    UIScene,
+  ],
 });

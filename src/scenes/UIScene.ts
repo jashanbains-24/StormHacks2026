@@ -337,6 +337,7 @@ export class UIScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .on("pointerup", () => {
         preferences.toggleMuted();
+        audio.syncMusicMute();
         audio.playClick();
         this.refreshAccessibilityLabels();
       });

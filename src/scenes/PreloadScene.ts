@@ -9,6 +9,13 @@ import {
   getFloorHarnessSimulation,
   mountFloorHarnessControls,
 } from "../dev/floorHarness";
+import { audio } from "../systems/AudioSystem";
+
+export const BACKGROUND_MUSIC_KEY = "breakpoint-background-music";
+const BACKGROUND_MUSIC_URL = new URL(
+  "../systems/music/Chill Ambience.mp3",
+  import.meta.url,
+).href;
 
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -18,7 +25,7 @@ export class PreloadScene extends Phaser.Scene {
   preload(): void {
     this.cameras.main.setBackgroundColor(THEME.colors.paper);
     this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 16, "UPTIME", {
+      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 16, "BREAKPOINT", {
         color: colorHex(THEME.colors.ink),
         fontFamily: THEME.fonts.family,
         fontSize: "42px",
@@ -82,6 +89,7 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("cushioned-bench", "furniture/cushioned-bench.png");
 
     this.load.setPath("");
+    this.load.audio(BACKGROUND_MUSIC_KEY, BACKGROUND_MUSIC_URL);
     getFloors().forEach(({ module }) => {
       module.assets.images.forEach((asset) =>
         this.load.image(asset.key, asset.path),
@@ -99,6 +107,7 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   create(): void {
+    audio.attachSoundManager(this.sound);
     this.anims.create({
       key: "player-down",
       frames: this.anims.generateFrameNumbers("player", { frames: [0, 1, 2] }),
@@ -168,6 +177,10 @@ export class PreloadScene extends Phaser.Scene {
 
     const harness = getFloorHarnessOptions();
     mountFloorHarnessControls(harness);
+    if (!harness.enabled) {
+      this.scene.start("StartMenuScene");
+      return;
+    }
     this.scene.launch("UIScene");
     this.scene.start("FloorScene", {
       floor: harness.floorOrder,
