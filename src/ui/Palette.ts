@@ -4,7 +4,7 @@ import { THEME, colorHex } from "../config/theme";
 import { COMPONENTS } from "../data/build";
 import type { ComponentType } from "../sim/types";
 
-type PaletteType = Exclude<ComponentType, "client">;
+type PaletteType = Exclude<ComponentType, "client" | "source">;
 
 export class Palette extends Phaser.GameObjects.Container {
   constructor(
@@ -12,6 +12,7 @@ export class Palette extends Phaser.GameObjects.Container {
     x: number,
     y: number,
     onDrop: (type: PaletteType, x: number, y: number) => void,
+    tutorial = false,
   ) {
     super(scene, x, y);
     scene.add.existing(this);
@@ -27,7 +28,10 @@ export class Palette extends Phaser.GameObjects.Container {
     });
     this.add([panel, title]);
 
-    (["loadBalancer", "server"] as PaletteType[]).forEach((type, index) => {
+    const types = tutorial
+      ? (["connector", "destination"] as PaletteType[])
+      : (["loadBalancer", "server"] as PaletteType[]);
+    (types as PaletteType[]).forEach((type, index) => {
       const originX = 118;
       const originY = 100 + index * 154;
       const item = scene.add.container(originX, originY);
@@ -71,7 +75,9 @@ export class Palette extends Phaser.GameObjects.Container {
     const help = scene.add.text(
       20,
       435,
-      "PORTS\n\nOUT → IN\n\nWire users to a load balancer or server, then wire the balancer to servers.",
+      tutorial
+        ? "PORTS\n\nOUT → IN\n\nConnect SOURCE to every DESTINATION. CONNECTOR blocks are optional."
+        : "PORTS\n\nOUT → IN\n\nWire users to a load balancer or server, then wire the balancer to servers.",
       {
         color: colorHex(THEME.colors.white),
         fontFamily: THEME.fonts.family,

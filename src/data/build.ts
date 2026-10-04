@@ -26,6 +26,24 @@ export const COMPONENTS: Record<ComponentType, ComponentDefinition> = {
     shortLabel: "SERVER",
     description: "Handles up to 40 requests per second.",
   },
+  source: {
+    type: "source",
+    label: "Source Block",
+    shortLabel: "SOURCE",
+    description: "The starting point for the tutorial flow.",
+  },
+  connector: {
+    type: "connector",
+    label: "Connector Block",
+    shortLabel: "CONNECT",
+    description: "A simple block that passes a connection along.",
+  },
+  destination: {
+    type: "destination",
+    label: "Destination Block",
+    shortLabel: "DESTINATION",
+    description: "The endpoint that the source must reach.",
+  },
 };
 
 export const BUILD_COPY = {

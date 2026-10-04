@@ -65,6 +65,9 @@ export const validateFloor = (floor: FloorModule, folder: string): void => {
       ? [floor.definition.content.managerAlert]
       : []),
     ...floor.definition.content.specialistHints,
+    ...(floor.definition.content.completionDialogue
+      ? [floor.definition.content.completionDialogue]
+      : []),
   ];
   lines.forEach((line) => assertPrefix(floor, line.id, "_", "dialogue id"));
   floor.definition.content.glossary.forEach((entry) =>

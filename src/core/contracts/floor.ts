@@ -25,6 +25,7 @@ export interface FloorGlossaryEntry {
 export interface FloorContent {
   managerAlert?: FloorDialogueLine;
   specialistHints: FloorDialogueLine[];
+  completionDialogue?: FloorDialogueLine;
   glossary: FloorGlossaryEntry[];
   tutorial: {
     move?: string;
@@ -36,6 +37,7 @@ export interface FloorContent {
 
 export interface FloorIncidentDefinition {
   title: string | null;
+  buildMode?: "standard" | "tutorial";
   availableComponents: {
     type: ComponentType;
     max: number;

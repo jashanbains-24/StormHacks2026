@@ -1,4 +1,5 @@
-export type ComponentType = "client" | "loadBalancer" | "server";
+export type ComponentType =
+  "client" | "loadBalancer" | "server" | "source" | "connector" | "destination";
 
 export interface DesignNode {
   id: string;

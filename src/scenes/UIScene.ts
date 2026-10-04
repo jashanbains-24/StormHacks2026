@@ -25,6 +25,7 @@ export class UIScene extends Phaser.Scene {
   private motionToggle!: Phaser.GameObjects.Text;
   private currentFloor = 0;
   private glossaryById: Record<string, FloorGlossaryEntry> = {};
+  private tutorialRecruitName?: string;
 
   constructor() {
     super("UIScene");
@@ -55,10 +56,6 @@ export class UIScene extends Phaser.Scene {
       .setDepth(900);
     this.createEmergencyFrame();
     this.createAccessibilityControls();
-    if (progression.snapshot.floorResults[1]) {
-      this.handleProgressionUpdated();
-    }
-
     gameEvents.on("interaction:available", this.showInteraction, this);
     gameEvents.on("interaction:clear", this.hideInteraction, this);
     gameEvents.on("floor:changed", this.handleFloorChanged, this);
@@ -67,21 +64,7 @@ export class UIScene extends Phaser.Scene {
     gameEvents.on("build:open", this.openBuildScene, this);
     gameEvents.on("build:closed", this.handleBuildClosed, this);
     gameEvents.on("progression:updated", this.handleProgressionUpdated, this);
-
-    if (tutorial.managerAlert) {
-      this.notification = new Notification(
-        this,
-        GAME_WIDTH - 620,
-        82,
-        tutorial.managerAlert.speakerName,
-        tutorial.managerAlert.text,
-      );
-    }
-    this.time.delayedCall(4200, () => {
-      if (this.scene.isActive()) {
-        this.objective.setText(tutorial.tutorial.elevator ?? "");
-      }
-    });
+    gameEvents.on("tutorial:completed", this.handleTutorialCompleted, this);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.removeListeners, this);
   }
@@ -100,14 +83,33 @@ export class UIScene extends Phaser.Scene {
     const module = getFloorByOrder(floor).module;
     const content = module.definition.content;
     this.dialogue.setSpecialistHints(content.specialistHints);
+    if (floor === 0 && this.tutorialRecruitName) {
+      const completion = content.completionDialogue;
+      if (completion) {
+        this.dialogue.setSpecialistHints([
+          {
+            ...completion,
+            text: `Well done, ${this.tutorialRecruitName}! Head upstairs to continue with onboarding.`,
+          },
+        ]);
+      }
+    }
     this.glossaryById = Object.fromEntries(
       content.glossary.map((entry) => [entry.id, entry]),
     );
     this.objective.setText(
-      content.tutorial.build ??
+      (floor === 0 ? content.tutorial.interact : content.tutorial.build) ??
         content.tutorial.elevator ??
         `${module.title} — incident queue empty`,
     );
+    if (floor === 0 && content.managerAlert) {
+      this.speech = new SpeechBubble(
+        this,
+        content.managerAlert,
+        this.glossaryById,
+        (entry) => this.showGlossary(entry),
+      );
+    }
   }
 
   private showSpecialistHint(): void {
@@ -115,6 +117,14 @@ export class UIScene extends Phaser.Scene {
     this.speech?.destroy();
     const line = this.dialogue.nextSpecialistHint();
     if (!line) return;
+    if (this.currentFloor === 0) {
+      const content = getFloorByOrder(0).module.definition.content;
+      this.objective.setText(
+        content.tutorial.build ??
+          content.tutorial.elevator ??
+          "Orientation complete",
+      );
+    }
     this.speech = new SpeechBubble(this, line, this.glossaryById, (entry) =>
       this.showGlossary(entry),
     );
@@ -224,7 +234,42 @@ export class UIScene extends Phaser.Scene {
   private handleProgressionUpdated(): void {
     this.alertTween?.stop();
     this.alertFrame.setAlpha(1).setStrokeStyle(3, THEME.colors.success, 0.8);
+    if (this.currentFloor === 0) {
+      const completion =
+        getFloorByOrder(0).module.definition.content.completionDialogue;
+      if (completion) {
+        this.dialogue.setSpecialistHints([completion]);
+      }
+
+      this.objective.setText(
+        "Orientation complete — you are ready to tackle Problem 1",
+      );
+      this.notification?.dismiss();
+      this.notification = new Notification(
+        this,
+        GAME_WIDTH - 620,
+        82,
+        "ORIENTATION COMPLETE",
+        "You are ready to tackle Problem 1. Take the elevator when you are ready.",
+        THEME.colors.success,
+      );
+      return;
+    }
     this.objective.setText("Floor 2 unlocked — take the elevator");
+  }
+
+  private handleTutorialCompleted(name: unknown): void {
+    if (this.currentFloor !== 0 || typeof name !== "string") return;
+    this.tutorialRecruitName = name;
+    const line =
+      getFloorByOrder(0).module.definition.content.completionDialogue;
+    if (!line) return;
+    this.dialogue.setSpecialistHints([
+      {
+        ...line,
+        text: `Well done, ${name}! Head upstairs to continue with onboarding.`,
+      },
+    ]);
   }
 
   private removeListeners(): void {
@@ -236,5 +281,6 @@ export class UIScene extends Phaser.Scene {
     gameEvents.off("build:open", this.openBuildScene, this);
     gameEvents.off("build:closed", this.handleBuildClosed, this);
     gameEvents.off("progression:updated", this.handleProgressionUpdated, this);
+    gameEvents.off("tutorial:completed", this.handleTutorialCompleted, this);
   }
 }
