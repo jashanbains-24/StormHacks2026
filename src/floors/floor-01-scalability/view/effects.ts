@@ -6,7 +6,7 @@ import type {
 import type { RoamingNpcRuntime } from "./runtime";
 import { getSceneRuntime } from "./runtime";
 
-export type F01EmergencyMode = "calm" | "emergency" | "resolved";
+export type F01EmergencyMode = "emergency" | "resolved";
 
 interface EmergencyModeInput {
   previewEnabled: boolean;
@@ -26,10 +26,7 @@ export const resolveEmergencyMode = ({
 }: EmergencyModeInput): F01EmergencyMode => {
   if (previewEnabled) {
     if (previewState === "fixed") return "resolved";
-    if (previewState === "strained" || previewState === "down") {
-      return "emergency";
-    }
-    return "calm";
+    return "emergency";
   }
   return completed ? "resolved" : "emergency";
 };
@@ -38,23 +35,20 @@ export const createAlarmPath = (
   width: number,
   height: number,
 ): AlarmPoint[] => {
-  const points: AlarmPoint[] = [];
   const left = 58;
   const right = width - 58;
   const top = 96;
   const bottom = height - 50;
-
-  for (let x = 130; x <= right - 70; x += 105) points.push({ x, y: top });
-  for (let y = top + 82; y <= bottom - 50; y += 82) {
-    points.push({ x: right, y });
-  }
-  for (let x = right - 70; x >= left + 70; x -= 105) {
-    points.push({ x, y: bottom });
-  }
-  for (let y = bottom - 50; y >= top + 82; y -= 82) {
-    points.push({ x: left, y });
-  }
-  return points;
+  return [
+    { x: width * 0.32, y: top },
+    { x: width * 0.68, y: top },
+    { x: right, y: height * 0.36 },
+    { x: right, y: height * 0.7 },
+    { x: width * 0.68, y: bottom },
+    { x: width * 0.32, y: bottom },
+    { x: left, y: height * 0.7 },
+    { x: left, y: height * 0.36 },
+  ];
 };
 
 const startNormalRoute = (
@@ -72,6 +66,60 @@ const startNormalRoute = (
     repeat: -1,
     yoyoDelay: 1400,
     repeatDelay: 1400,
+  });
+};
+
+const createRaisedArms = (
+  ctx: FloorContext,
+  { npc }: RoamingNpcRuntime,
+  index: number,
+): void => {
+  const skin = 0xf1bd91;
+  const rig = ctx.scene.add.container(npc.x, npc.y);
+  const leftArm = ctx.scene.add
+    .rectangle(-13, -3, 6, 23, skin)
+    .setOrigin(0.5, 1)
+    .setAngle(-28);
+  const rightArm = ctx.scene.add
+    .rectangle(13, -3, 6, 23, skin)
+    .setOrigin(0.5, 1)
+    .setAngle(28);
+  const leftHand = ctx.scene.add.circle(-23, -25, 4, skin);
+  const rightHand = ctx.scene.add.circle(23, -25, 4, skin);
+  const alarm = ctx.scene.add
+    .text(0, -57, "!!", {
+      color: "#ffffff",
+      backgroundColor: "#d64045",
+      fontFamily: ctx.theme.fonts.mono,
+      fontSize: "13px",
+      fontStyle: "bold",
+      padding: { x: 4, y: 1 },
+    })
+    .setOrigin(0.5);
+  rig.add([leftArm, rightArm, leftHand, rightHand, alarm]);
+  ctx.addUpdater(() => {
+    rig.setPosition(npc.x, npc.y).setDepth(npc.y + 2);
+  });
+  ctx.scene.tweens.add({
+    targets: leftArm,
+    angle: { from: -58, to: -18 },
+    duration: 125 + index * 12,
+    yoyo: true,
+    repeat: -1,
+  });
+  ctx.scene.tweens.add({
+    targets: rightArm,
+    angle: { from: 58, to: 18 },
+    duration: 140 + index * 12,
+    yoyo: true,
+    repeat: -1,
+  });
+  ctx.scene.tweens.add({
+    targets: [leftHand, rightHand],
+    y: { from: -29, to: -22 },
+    duration: 130,
+    yoyo: true,
+    repeat: -1,
   });
 };
 
@@ -96,6 +144,7 @@ const startPanicRoute = (
     return;
   }
 
+  createRaisedArms(ctx, runtime, index);
   const sprint = (): void => {
     if (!npc.active) return;
     const x = 660 + Math.random() * 390;
@@ -126,21 +175,43 @@ const createWallAlarms = (ctx: FloorContext, mode: F01EmergencyMode): void => {
   const path = createAlarmPath(ctx.scene.scale.width, ctx.scene.scale.height);
   const alarmColor =
     mode === "emergency" ? ctx.theme.colors.alert : ctx.theme.colors.success;
-  const glows = path.map(({ x, y }) => {
-    ctx.scene.add.circle(x, y, 9, ctx.theme.colors.panelDark).setDepth(690);
-    ctx.scene.add.circle(x, y, 6, alarmColor, 0.95).setDepth(692);
-    return ctx.scene.add
-      .circle(x, y, 22, alarmColor, mode === "emergency" ? 0.22 : 0.13)
+  path.forEach(({ x, y }, index) => {
+    const glow = ctx.scene.add
+      .circle(x, y, 34, alarmColor, mode === "emergency" ? 0.24 : 0.11)
       .setDepth(691)
       .setBlendMode("ADD");
-  });
+    const flare = ctx.scene.add
+      .rectangle(x, y, 92, 9, alarmColor, 0.19)
+      .setOrigin(0, 0.5)
+      .setDepth(690)
+      .setBlendMode("ADD")
+      .setVisible(mode === "emergency");
+    ctx.scene.add
+      .rectangle(x, y + 10, 38, 9, ctx.theme.colors.panelDark)
+      .setDepth(693);
+    ctx.scene.add
+      .ellipse(x, y, 30, 26, alarmColor, 0.82)
+      .setStrokeStyle(3, ctx.theme.colors.panelDark)
+      .setDepth(694);
+    ctx.scene.add.circle(x, y - 1, 7, alarmColor, 1).setDepth(695);
 
-  if (mode !== "emergency" || ctx.preferences.reducedMotion) return;
-  ctx.addUpdater(() => {
-    const lead = Math.floor(ctx.scene.time.now / 115) % glows.length;
-    glows.forEach((glow, index) => {
-      const distance = (index - lead + glows.length) % glows.length;
-      glow.setAlpha(distance < 4 ? 0.52 - distance * 0.1 : 0.08);
+    if (mode !== "emergency" || ctx.preferences.reducedMotion) return;
+    flare.setAngle(index * 45);
+    ctx.scene.tweens.add({
+      targets: flare,
+      angle: flare.angle + 360,
+      duration: 920,
+      delay: index * 75,
+      repeat: -1,
+    });
+    ctx.scene.tweens.add({
+      targets: glow,
+      alpha: { from: 0.12, to: 0.42 },
+      scale: { from: 0.8, to: 1.12 },
+      duration: 430,
+      delay: index * 55,
+      yoyo: true,
+      repeat: -1,
     });
   });
 };
@@ -162,20 +233,19 @@ const createEmergencyPulse = (
     .setScrollFactor(0)
     .setDepth(695);
 
-  ctx.scene.time.addEvent({
-    delay: 2450,
-    loop: true,
-    callback: () => {
-      if (!overlay.active) return;
-      ctx.scene.tweens.add({
-        targets: overlay,
-        alpha: { from: 0, to: 0.1 },
-        duration: 95,
-        yoyo: true,
-      });
-      ctx.scene.cameras.main.shake(110, 0.0011);
-    },
-  });
+  const pulse = (): void => {
+    if (!overlay.active) return;
+    ctx.scene.tweens.add({
+      targets: overlay,
+      alpha: { from: 0, to: 0.17 },
+      duration: 145,
+      hold: 65,
+      yoyo: true,
+    });
+    ctx.scene.cameras.main.shake(180, 0.0022);
+  };
+  ctx.scene.time.delayedCall(550, pulse);
+  ctx.scene.time.addEvent({ delay: 2200, loop: true, callback: pulse });
 };
 
 export const createEffects = (ctx: FloorContext): EffectsHandle => {

@@ -183,6 +183,7 @@ export interface FloorView {
   createLayout(ctx: FloorContext): LayoutHandle;
   createBuildUI(ctx: FloorContext): BuildUIHandle;
   createEffects?(ctx: FloorContext): EffectsHandle;
+  replacesDefaultEmergencyEffects?: boolean;
 }
 
 export interface FloorModule {

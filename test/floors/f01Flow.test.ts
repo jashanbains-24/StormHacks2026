@@ -74,6 +74,13 @@ describe("Floor 1 emergency presentation", () => {
     expect(
       resolveEmergencyMode({
         previewEnabled: true,
+        previewState: "calm",
+        completed: true,
+      }),
+    ).toBe("emergency");
+    expect(
+      resolveEmergencyMode({
+        previewEnabled: true,
         previewState: "down",
         completed: true,
       }),
@@ -92,10 +99,10 @@ describe("Floor 1 emergency presentation", () => {
     const height = 720;
     const path = createAlarmPath(width, height);
 
-    expect(path.length).toBeGreaterThan(20);
-    expect(path.some(({ y }) => y === 96)).toBe(true);
-    expect(path.some(({ x }) => x === width - 58)).toBe(true);
-    expect(path.some(({ y }) => y === height - 50)).toBe(true);
-    expect(path.some(({ x }) => x === 58)).toBe(true);
+    expect(path).toHaveLength(8);
+    expect(path.filter(({ y }) => y === 96)).toHaveLength(2);
+    expect(path.filter(({ x }) => x === width - 58)).toHaveLength(2);
+    expect(path.filter(({ y }) => y === height - 50)).toHaveLength(2);
+    expect(path.filter(({ x }) => x === 58)).toHaveLength(2);
   });
 });

@@ -13,7 +13,12 @@ const floor: FloorModule = {
   title: "Floor 1: Traffic Operations",
   category: "Scalability / Load Distribution",
   definition: { content, incident },
-  view: { createLayout, createBuildUI, createEffects },
+  view: {
+    createLayout,
+    createBuildUI,
+    createEffects,
+    replacesDefaultEmergencyEffects: true,
+  },
   assets,
   theme,
 };

@@ -60,7 +60,9 @@ export class FloorScene extends Phaser.Scene {
     this.player = new Player(this, 130, GAME_HEIGHT / 2);
     this.createBoundaries(theme);
     this.createHeader(floor.module.title, theme);
-    this.createEmergencyLights(theme);
+    if (!floor.module.view.replacesDefaultEmergencyEffects) {
+      this.createEmergencyLights(theme);
+    }
 
     const context = this.createContext(theme);
     this.createElevator(context);
