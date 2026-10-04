@@ -55,7 +55,7 @@ export class UIScene extends Phaser.Scene {
       .setDepth(900);
     this.createEmergencyFrame();
     this.createAccessibilityControls();
-    if (progression.snapshot.floorResults[1]) {
+    if (progression.wasCompletedThisSession(1)) {
       this.handleProgressionUpdated();
     }
 
@@ -161,7 +161,7 @@ export class UIScene extends Phaser.Scene {
 
   private handleBuildClosed(): void {
     this.objective.setVisible(true);
-    if (progression.snapshot.floorResults[1]) {
+    if (progression.wasCompletedThisSession(this.currentFloor)) {
       this.scene.stop("FloorScene");
       this.scene.launch("FloorScene", { floor: this.currentFloor });
       this.scene.bringToTop();

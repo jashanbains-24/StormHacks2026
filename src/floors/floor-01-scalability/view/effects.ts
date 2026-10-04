@@ -11,7 +11,7 @@ export type F01EmergencyMode = "emergency" | "resolved";
 interface EmergencyModeInput {
   previewEnabled: boolean;
   previewState: FloorPreviewState;
-  completed: boolean;
+  resolvedThisSession: boolean;
 }
 
 interface AlarmPoint {
@@ -22,13 +22,13 @@ interface AlarmPoint {
 export const resolveEmergencyMode = ({
   previewEnabled,
   previewState,
-  completed,
+  resolvedThisSession,
 }: EmergencyModeInput): F01EmergencyMode => {
   if (previewEnabled) {
     if (previewState === "fixed") return "resolved";
     return "emergency";
   }
-  return completed ? "resolved" : "emergency";
+  return resolvedThisSession ? "resolved" : "emergency";
 };
 
 export const createAlarmPath = (
@@ -252,7 +252,7 @@ export const createEffects = (ctx: FloorContext): EffectsHandle => {
   const mode = resolveEmergencyMode({
     previewEnabled: ctx.preview.enabled,
     previewState: ctx.preview.state,
-    completed: ctx.progression.resultFor(ctx.floorOrder) !== undefined,
+    resolvedThisSession: ctx.progression.completedThisSession(ctx.floorOrder),
   });
   const runtime = getSceneRuntime(ctx);
 

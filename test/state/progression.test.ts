@@ -40,4 +40,15 @@ describe("ProgressionStore", () => {
       floorResults: {},
     });
   });
+
+  it("keeps persisted completion separate from this session's resolution", () => {
+    const storage = new MemoryStorage();
+    const store = new ProgressionStore(storage);
+    store.completeFloor(1, "canonical", []);
+
+    expect(store.wasCompletedThisSession(1)).toBe(true);
+    const restored = new ProgressionStore(storage);
+    expect(restored.snapshot.floorResults[1]?.quality).toBe("canonical");
+    expect(restored.wasCompletedThisSession(1)).toBe(false);
+  });
 });

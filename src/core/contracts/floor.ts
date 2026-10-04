@@ -147,6 +147,7 @@ export interface FloorContext {
     resultFor(
       order: number,
     ): { quality: DesignQuality; debtNotes: string[] } | undefined;
+    completedThisSession(order: number): boolean;
     report(order: number, quality: DesignQuality, debtNotes: string[]): void;
   };
   readonly events: {

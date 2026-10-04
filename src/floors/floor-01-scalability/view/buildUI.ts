@@ -5,9 +5,7 @@ import { getQuestProgress } from "./runtime";
 
 export const createBuildUI = (ctx: FloorContext): BuildUIHandle => {
   const quest = getQuestProgress(ctx);
-  const isUnlocked = (): boolean =>
-    quest.consoleUnlocked ||
-    ctx.progression.resultFor(ctx.floorOrder) !== undefined;
+  const isUnlocked = (): boolean => quest.consoleUnlocked;
 
   createOfficeLayout(ctx, INTERN_WORKSTATION_PROPS, []);
   const screenGlow = ctx.scene.add

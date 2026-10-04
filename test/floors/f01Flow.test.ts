@@ -86,35 +86,35 @@ describe("Floor 1 emergency presentation", () => {
       resolveEmergencyMode({
         previewEnabled: false,
         previewState: "calm",
-        completed: false,
+        resolvedThisSession: false,
       }),
     ).toBe("emergency");
     expect(
       resolveEmergencyMode({
         previewEnabled: false,
         previewState: "down",
-        completed: true,
+        resolvedThisSession: true,
       }),
     ).toBe("resolved");
     expect(
       resolveEmergencyMode({
         previewEnabled: true,
         previewState: "calm",
-        completed: true,
+        resolvedThisSession: true,
       }),
     ).toBe("emergency");
     expect(
       resolveEmergencyMode({
         previewEnabled: true,
         previewState: "down",
-        completed: true,
+        resolvedThisSession: true,
       }),
     ).toBe("emergency");
     expect(
       resolveEmergencyMode({
         previewEnabled: true,
         previewState: "fixed",
-        completed: false,
+        resolvedThisSession: false,
       }),
     ).toBe("resolved");
   });
