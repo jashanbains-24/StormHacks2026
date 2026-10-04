@@ -9,6 +9,7 @@ import {
   createAlarmPath,
   fixtureRotationFor,
   resolveEmergencyMode,
+  roomLightingFor,
 } from "../../src/floors/floor-01-scalability/view/effects";
 import {
   DIALOGUE_DISMISS_DISTANCE,
@@ -250,6 +251,16 @@ describe("Floor 1 intern flow", () => {
 });
 
 describe("Floor 1 emergency presentation", () => {
+  it("uses a darker red incident mood and a lighter green resolved mood", () => {
+    const emergency = roomLightingFor("emergency");
+    const resolved = roomLightingFor("resolved");
+
+    expect(emergency.darkness).toBeGreaterThan(resolved.darkness);
+    expect(emergency.mood).toBeGreaterThan(resolved.mood);
+    expect(resolved.darkness).toBeGreaterThan(0);
+    expect(resolved.mood).toBeGreaterThan(0);
+  });
+
   it("uses progression in the game and explicit states in the preview harness", () => {
     expect(
       resolveEmergencyMode({

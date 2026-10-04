@@ -8,6 +8,16 @@ import { getSceneRuntime } from "./runtime";
 
 export type F01EmergencyMode = "emergency" | "resolved";
 
+export interface RoomLightingLevels {
+  darkness: number;
+  mood: number;
+}
+
+export const roomLightingFor = (mode: F01EmergencyMode): RoomLightingLevels =>
+  mode === "emergency"
+    ? { darkness: 0.2, mood: 0.065 }
+    : { darkness: 0.07, mood: 0.035 };
+
 interface EmergencyModeInput {
   previewEnabled: boolean;
   previewState: FloorPreviewState;
@@ -186,17 +196,14 @@ const createWallAlarms = (ctx: FloorContext, mode: F01EmergencyMode): void => {
   const alarmColor =
     mode === "emergency" ? ctx.theme.colors.alert : ctx.theme.colors.success;
   path.forEach(({ x, y, inwardAngle }, index) => {
+    const outerGlow = ctx.scene.add
+      .circle(x, y, 46, alarmColor, mode === "emergency" ? 0.08 : 0.035)
+      .setDepth(690)
+      .setBlendMode("ADD");
     const glow = ctx.scene.add
       .circle(x, y, 26, alarmColor, mode === "emergency" ? 0.22 : 0.1)
       .setDepth(691)
       .setBlendMode("ADD");
-    const flare = ctx.scene.add
-      .rectangle(x, y, 56, 7, alarmColor, 0.18)
-      .setOrigin(0, 0.5)
-      .setAngle(inwardAngle)
-      .setDepth(690)
-      .setBlendMode("ADD")
-      .setVisible(mode === "emergency");
     const base = ctx.scene.add.rectangle(
       0,
       -10,
@@ -213,20 +220,43 @@ const createWallAlarms = (ctx: FloorContext, mode: F01EmergencyMode): void => {
       .setAngle(fixtureRotationFor(inwardAngle))
       .setDepth(693);
 
-    if (mode !== "emergency" || ctx.preferences.reducedMotion) return;
+    if (ctx.preferences.reducedMotion) return;
+    const duration = mode === "emergency" ? 420 : 1500;
     ctx.scene.tweens.add({
-      targets: flare,
-      angle: { from: inwardAngle - 34, to: inwardAngle + 34 },
-      duration: 680,
-      delay: index * 75,
+      targets: outerGlow,
+      alpha:
+        mode === "emergency"
+          ? { from: 0.025, to: 0.18 }
+          : { from: 0.02, to: 0.08 },
+      scale:
+        mode === "emergency"
+          ? { from: 0.75, to: 1.18 }
+          : { from: 0.9, to: 1.05 },
+      duration,
+      delay: index * 65,
       yoyo: true,
       repeat: -1,
     });
     ctx.scene.tweens.add({
       targets: glow,
-      alpha: { from: 0.12, to: 0.42 },
-      scale: { from: 0.8, to: 1.12 },
-      duration: 430,
+      alpha:
+        mode === "emergency"
+          ? { from: 0.08, to: 0.48 }
+          : { from: 0.07, to: 0.16 },
+      scale:
+        mode === "emergency"
+          ? { from: 0.82, to: 1.15 }
+          : { from: 0.95, to: 1.04 },
+      duration,
+      delay: index * 55,
+      yoyo: true,
+      repeat: -1,
+    });
+    ctx.scene.tweens.add({
+      targets: [dome, core],
+      alpha:
+        mode === "emergency" ? { from: 0.58, to: 1 } : { from: 0.78, to: 1 },
+      duration,
       delay: index * 55,
       yoyo: true,
       repeat: -1,
@@ -234,32 +264,54 @@ const createWallAlarms = (ctx: FloorContext, mode: F01EmergencyMode): void => {
   });
 };
 
-const createEmergencyPulse = (
+const createRoomLighting = (
   ctx: FloorContext,
   mode: F01EmergencyMode,
 ): void => {
-  if (mode !== "emergency") return;
-  const baseTint = 0.04;
-  const overlay = ctx.scene.add
+  const levels = roomLightingFor(mode);
+  ctx.scene.add
     .rectangle(
       ctx.scene.scale.width / 2,
       ctx.scene.scale.height / 2,
       ctx.scene.scale.width,
       ctx.scene.scale.height,
-      ctx.theme.colors.alert,
-      baseTint,
+      ctx.theme.colors.ink,
+      levels.darkness,
     )
     .setScrollFactor(0)
-    .setDepth(695);
+    .setDepth(685);
+  const mood = ctx.scene.add
+    .rectangle(
+      ctx.scene.scale.width / 2,
+      ctx.scene.scale.height / 2,
+      ctx.scene.scale.width,
+      ctx.scene.scale.height,
+      mode === "emergency" ? ctx.theme.colors.alert : ctx.theme.colors.success,
+      levels.mood,
+    )
+    .setScrollFactor(0)
+    .setDepth(689);
   if (ctx.preferences.reducedMotion) return;
 
-  const pulse = (): void => {
-    if (!overlay.active) return;
+  if (mode === "resolved") {
     ctx.scene.tweens.add({
-      targets: overlay,
-      alpha: { from: baseTint, to: 0.19 },
-      duration: 175,
-      hold: 90,
+      targets: mood,
+      alpha: { from: levels.mood * 0.7, to: levels.mood * 1.45 },
+      duration: 1800,
+      ease: "Sine.easeInOut",
+      yoyo: true,
+      repeat: -1,
+    });
+    return;
+  }
+
+  const pulse = (): void => {
+    if (!mood.active) return;
+    ctx.scene.tweens.add({
+      targets: mood,
+      alpha: { from: levels.mood, to: 0.2 },
+      duration: 210,
+      hold: 110,
       yoyo: true,
     });
     ctx.scene.cameras.main.shake(180, 0.0022);
@@ -276,12 +328,12 @@ export const createEffects = (ctx: FloorContext): EffectsHandle => {
   });
   const runtime = getSceneRuntime(ctx);
 
+  createRoomLighting(ctx, mode);
   runtime.roamingNpcs.forEach((npc, index) => {
     if (mode === "emergency") startPanicRoute(ctx, npc, index);
     else startNormalRoute(ctx, npc);
   });
   createWallAlarms(ctx, mode);
-  createEmergencyPulse(ctx, mode);
 
   return {};
 };
