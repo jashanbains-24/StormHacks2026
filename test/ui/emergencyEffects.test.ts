@@ -189,6 +189,31 @@ describe("shared emergency presentation", () => {
     effects.destroy();
   });
 
+  it("finishes shutdown after Phaser has already removed the main camera", () => {
+    for (const mode of ["emergency", "resolved"] as const) {
+      const f = fixture();
+      const effects = createEmergencyEffects(f.ctx, f.staff, mode);
+      // Scene plugins tear down their camera and objects before floor listeners.
+      const cameras = f.ctx.scene.cameras as unknown as {
+        main: typeof f.camera | undefined;
+      };
+      cameras.main = undefined;
+      f.objects.forEach((object) => object.destroy());
+      f.npc.destroy();
+      const afterShutdown = vi.fn();
+      f.events.once("shutdown", afterShutdown);
+
+      expect(() => f.events.emit("shutdown")).not.toThrow();
+      expect(afterShutdown).toHaveBeenCalledOnce();
+      expect(f.gameEvents.listenerCount("ui:modal-opened")).toBe(0);
+      expect(f.gameEvents.listenerCount("ui:modal-closed")).toBe(0);
+      expect(
+        f.timers.every((timer) => timer.remove.mock.calls.length === 1),
+      ).toBe(true);
+      expect(() => effects.destroy()).not.toThrow();
+    }
+  });
+
   it("shows static warning markers without flashing, shake, or running for reduced motion", () => {
     const f = fixture(true);
     const effects = createEmergencyEffects(f.ctx, f.staff, "emergency");

@@ -26,9 +26,13 @@ export const createEmergencyEffects = (
   let scope: EffectScope | undefined;
   let alive = true;
   const modals = new Set<object>();
+  // Phaser's camera plugin shuts down before floor-owned cleanup listeners.
+  const resetShake = (): void => {
+    ctx.scene.cameras.main?.shakeEffect.reset();
+  };
   const modalOpened = (token: object): void => {
     modals.add(token);
-    ctx.scene.cameras.main.shakeEffect.reset();
+    resetShake();
   };
   const modalClosed = (token: object): void => {
     modals.delete(token);
@@ -41,7 +45,7 @@ export const createEmergencyEffects = (
     staff.forEach(({ npc }) => {
       if (npc.active) npc.setVelocity(0, 0).setAngle(0);
     });
-    ctx.scene.cameras.main.shakeEffect.reset();
+    resetShake();
   };
 
   const setMode = (next: EmergencyMode): void => {

@@ -45,7 +45,7 @@ Floor 2. Floor 2's incident still resets on refresh, per its original handoff.
 Browser checks used temporary progression fixtures and restored the original
 player save afterward. Verified keyboard/numpad and mouse selection, locks,
 travel to Floors 0/1/2, modal closing, pending-debrief recovery, and saved unlock.
-The generic regression suite now contains 107 passing tests. Type-check,
+The generic regression suite now contains 108 passing tests. Type-check,
 production build, and floor boundary validation pass. Changed files pass
 Prettier; the full check still reports the five existing formatting warnings in
 AGENTS.md, floorC_changesv2.md, LOBBY_SPEC.md, PARALLEL_FLOOR_ARCHITECTURE.md, and
@@ -117,6 +117,18 @@ Priya's TTL puzzle, and Dana's wrap-up. Verified red-to-green transition, calm
 movement, stopped shaking, refresh resetting Floor 2's incident, quiet standby,
 and Floor 1's original panicked staff and sirens. Player saves were restored
 afterward. Browser console had no errors.
+
+### Shutdown regression fix
+
+Returning from a canonical Floor 1 stress test restarts the office. Phaser's
+camera plugin removes `cameras.main` before floor-owned shutdown listeners run.
+The shared effects originally attempted to reset shake through that missing
+camera, interrupting the scene queue and leaving the last console image on screen.
+Shake cleanup now tolerates the camera being absent. The regression test models
+plugin teardown before both emergency and resolved effect cleanup and confirms
+later shutdown listeners still run. Live verification reproduced the exception
+before the fix, then completed the real stress test, returned to the office,
+acknowledged Rhea's debrief, and travelled onward without an exception.
 
 ## Remaining sequence
 
