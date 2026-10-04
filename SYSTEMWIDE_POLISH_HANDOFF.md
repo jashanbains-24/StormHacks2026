@@ -149,6 +149,23 @@ near/far and the storage team's existing behavior. All 110 tests, type-check,
 production build, and floor validation pass. Changed files pass formatting;
 the full formatting check retains its five previously documented warnings.
 
+## Floor 1 inline glossary dialogue
+
+Rhea's briefing, hints, and outcome feedback now link jargon in the sentences
+with the same `[[f01.term]]` markup used by Floor 2. The shared `SpeechBubble`
+rich renderer provides dotted underlines, info icons, hover cards, click-to-pin,
+and automatically sized bubbles; the old separate glossary chips are removed
+from Floor 1's content. Plain dialogue pages retain the shared plain rendering.
+No new UI implementation or changes to the challenge, quest rules, or dialogue
+navigation were needed. All nine Floor 1 terms remain reachable, with a generic
+content test checking every link across all outcome paths.
+
+Live checks covered all 25 dialogue page layouts, mouse Next/Done, the game's
+E interaction path through temporary key fixtures, hover release, pinned cards,
+and cleanup on page changes and movement. Player saves were restored afterward.
+All 111 tests, type-check, production build, and floor validation pass. Changed
+files pass formatting; the full check retains the five existing warnings.
+
 ## Remaining sequence
 
 The user added another UI pass, still one verified milestone at a time:
@@ -158,7 +175,7 @@ The user added another UI pass, still one verified milestone at a time:
    markers and the current running speed (done).
 3. Share Floor 2's nearby-only NPC name labels with Maya and Rhea (done).
 4. Give Floor 1 Floor 2's rich dialogue bubbles and inline hover/click term cards,
-   replacing the glossary chips while preserving E and Next/Done.
+   replacing the glossary chips while preserving E and Next/Done (done).
 5. Share a persistent bottom-left glossary across floors and puzzle screens,
    retaining opened terms while travelling and handling long lists.
 6. Run the complete game flow, check for the teammate's newer main changes,
