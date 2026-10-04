@@ -95,6 +95,7 @@ export class FloorScene extends Phaser.Scene {
       },
       hud: {
         showToast: (message) => gameEvents.emit("ui:toast", message),
+        setObjective: (message) => gameEvents.emit("ui:objective", message),
       },
       dialogue: {
         showSpecialist: () =>

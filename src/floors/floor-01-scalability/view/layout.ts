@@ -61,9 +61,12 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
       ctx.dialogue.showSpecialist();
       if (firstIntroduction) {
         ctx.hud.showToast(
-          "Intern access granted. Your workstation is directly below Rhea.",
+          "Intern access granted. Your workstation is down and to Rhea's right.",
         );
       }
+      ctx.hud.setObjective(
+        "Intern task: use your assigned workstation to stabilize traffic",
+      );
     },
   });
 

@@ -125,7 +125,7 @@ const startPanicRoute = (
 const createWallAlarms = (ctx: FloorContext, mode: F01EmergencyMode): void => {
   const path = createAlarmPath(ctx.scene.scale.width, ctx.scene.scale.height);
   const alarmColor =
-    mode === "resolved" ? ctx.theme.colors.success : ctx.theme.colors.alert;
+    mode === "emergency" ? ctx.theme.colors.alert : ctx.theme.colors.success;
   const glows = path.map(({ x, y }) => {
     ctx.scene.add.circle(x, y, 9, ctx.theme.colors.panelDark).setDepth(690);
     ctx.scene.add.circle(x, y, 6, alarmColor, 0.95).setDepth(692);

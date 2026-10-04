@@ -65,6 +65,7 @@ export class UIScene extends Phaser.Scene {
     gameEvents.on("dialogue:specialist", this.showSpecialistHint, this);
     gameEvents.on("dialogue:dismiss", this.dismissDialogue, this);
     gameEvents.on("ui:toast", this.showToast, this);
+    gameEvents.on("ui:objective", this.setObjective, this);
     gameEvents.on("build:open", this.openBuildScene, this);
     gameEvents.on("build:closed", this.handleBuildClosed, this);
     gameEvents.on("progression:updated", this.handleProgressionUpdated, this);
@@ -141,6 +142,10 @@ export class UIScene extends Phaser.Scene {
       THEME.colors.warning,
       3800,
     );
+  }
+
+  private setObjective(message: string): void {
+    this.objective.setText(message);
   }
 
   private openBuildScene(floorId: string): void {
@@ -240,6 +245,7 @@ export class UIScene extends Phaser.Scene {
     gameEvents.off("dialogue:specialist", this.showSpecialistHint, this);
     gameEvents.off("dialogue:dismiss", this.dismissDialogue, this);
     gameEvents.off("ui:toast", this.showToast, this);
+    gameEvents.off("ui:objective", this.setObjective, this);
     gameEvents.off("build:open", this.openBuildScene, this);
     gameEvents.off("build:closed", this.handleBuildClosed, this);
     gameEvents.off("progression:updated", this.handleProgressionUpdated, this);

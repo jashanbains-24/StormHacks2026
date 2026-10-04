@@ -133,6 +133,7 @@ export interface FloorContext {
   };
   readonly hud: {
     showToast(message: string): void;
+    setObjective(message: string): void;
   };
   readonly dialogue: {
     showSpecialist(): void;
