@@ -155,6 +155,15 @@ describe("Floor 1 intern flow", () => {
     ]);
   });
 
+  it("keeps the library clear of the wall and its alarm beacons", () => {
+    const library = F01_OFFICE_PROPS.filter((prop) =>
+      ["bookshelf", "double-bookshelf"].includes(prop.texture),
+    ).filter((prop) => prop.x < 500);
+
+    expect(library).toHaveLength(3);
+    library.forEach((shelf) => expect(shelf.x).toBe(170));
+  });
+
   it("seats exactly three employees facing their computers", () => {
     expect(SEATED_NPCS).toHaveLength(3);
     SEATED_NPCS.forEach((npc) => {
@@ -220,5 +229,13 @@ describe("Floor 1 emergency presentation", () => {
     expect(path.filter(({ x }) => x === width - 58)).toHaveLength(2);
     expect(path.filter(({ y }) => y === height - 50)).toHaveLength(2);
     expect(path.filter(({ x }) => x === 58)).toHaveLength(2);
+    expect(path.filter(({ x }) => x === width - 58).map(({ y }) => y)).toEqual([
+      160,
+      height - 160,
+    ]);
+    expect(path.filter(({ x }) => x === 58).map(({ y }) => y)).toEqual([
+      height - 160,
+      160,
+    ]);
   });
 });

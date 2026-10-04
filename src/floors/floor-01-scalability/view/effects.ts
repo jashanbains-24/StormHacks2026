@@ -42,12 +42,12 @@ export const createAlarmPath = (
   return [
     { x: width * 0.32, y: top },
     { x: width * 0.68, y: top },
-    { x: right, y: height * 0.36 },
-    { x: right, y: height * 0.7 },
+    { x: right, y: 160 },
+    { x: right, y: height - 160 },
     { x: width * 0.68, y: bottom },
     { x: width * 0.32, y: bottom },
-    { x: left, y: height * 0.7 },
-    { x: left, y: height * 0.36 },
+    { x: left, y: height - 160 },
+    { x: left, y: 160 },
   ];
 };
 
@@ -103,21 +103,21 @@ const createRaisedArms = (
   ctx.scene.tweens.add({
     targets: leftArm,
     angle: { from: -58, to: -18 },
-    duration: 125 + index * 12,
+    duration: 210 + index * 14,
     yoyo: true,
     repeat: -1,
   });
   ctx.scene.tweens.add({
     targets: rightArm,
     angle: { from: 58, to: 18 },
-    duration: 140 + index * 12,
+    duration: 230 + index * 14,
     yoyo: true,
     repeat: -1,
   });
   ctx.scene.tweens.add({
     targets: [leftHand, rightHand],
     y: { from: -29, to: -22 },
-    duration: 130,
+    duration: 220,
     yoyo: true,
     repeat: -1,
   });
@@ -145,30 +145,36 @@ const startPanicRoute = (
   }
 
   createRaisedArms(ctx, runtime, index);
-  const sprint = (): void => {
-    if (!npc.active) return;
-    const x = 660 + Math.random() * 390;
-    const y = 260 + Math.random() * 310;
-    ctx.scene.tweens.add({
-      targets: npc,
-      x,
-      y,
-      duration: 560 + Math.random() * 420,
-      ease: "Sine.easeInOut",
-      delay: index * 80,
-      onComplete: sprint,
-    });
+  let targetX = npc.x;
+  let targetY = npc.y;
+  let nextTurnAt = 0;
+  let speed = 105;
+  const chooseDirection = (): void => {
+    targetX = 620 + Math.random() * 460;
+    targetY = 270 + Math.random() * 290;
+    speed = 105 + index * 7 + Math.random() * 14;
+    nextTurnAt = ctx.scene.time.now + 900 + Math.random() * 1000;
   };
+  ctx.addUpdater(() => {
+    if (!npc.active) return;
+    const distance = Math.hypot(targetX - npc.x, targetY - npc.y);
+    if (ctx.scene.time.now >= nextTurnAt || distance < 18) chooseDirection();
+    const currentDistance = Math.hypot(targetX - npc.x, targetY - npc.y);
+    if (currentDistance === 0) return;
+    npc.setVelocity(
+      ((targetX - npc.x) / currentDistance) * speed,
+      ((targetY - npc.y) / currentDistance) * speed,
+    );
+  });
 
   ctx.scene.tweens.add({
     targets: npc,
-    angle: { from: -7, to: 7 },
-    duration: 105 + index * 12,
+    angle: { from: -3, to: 3 },
+    duration: 240 + index * 18,
     ease: "Sine.easeInOut",
     yoyo: true,
     repeat: -1,
   });
-  sprint();
 };
 
 const createWallAlarms = (ctx: FloorContext, mode: F01EmergencyMode): void => {
@@ -177,11 +183,11 @@ const createWallAlarms = (ctx: FloorContext, mode: F01EmergencyMode): void => {
     mode === "emergency" ? ctx.theme.colors.alert : ctx.theme.colors.success;
   path.forEach(({ x, y }, index) => {
     const glow = ctx.scene.add
-      .circle(x, y, 34, alarmColor, mode === "emergency" ? 0.24 : 0.11)
+      .circle(x, y, 26, alarmColor, mode === "emergency" ? 0.22 : 0.1)
       .setDepth(691)
       .setBlendMode("ADD");
     const flare = ctx.scene.add
-      .rectangle(x, y, 92, 9, alarmColor, 0.19)
+      .rectangle(x, y, 56, 7, alarmColor, 0.18)
       .setOrigin(0, 0.5)
       .setDepth(690)
       .setBlendMode("ADD")
@@ -220,7 +226,8 @@ const createEmergencyPulse = (
   ctx: FloorContext,
   mode: F01EmergencyMode,
 ): void => {
-  if (mode !== "emergency" || ctx.preferences.reducedMotion) return;
+  if (mode !== "emergency") return;
+  const baseTint = 0.04;
   const overlay = ctx.scene.add
     .rectangle(
       ctx.scene.scale.width / 2,
@@ -228,18 +235,19 @@ const createEmergencyPulse = (
       ctx.scene.scale.width,
       ctx.scene.scale.height,
       ctx.theme.colors.alert,
-      0,
+      baseTint,
     )
     .setScrollFactor(0)
     .setDepth(695);
+  if (ctx.preferences.reducedMotion) return;
 
   const pulse = (): void => {
     if (!overlay.active) return;
     ctx.scene.tweens.add({
       targets: overlay,
-      alpha: { from: 0, to: 0.17 },
-      duration: 145,
-      hold: 65,
+      alpha: { from: baseTint, to: 0.19 },
+      duration: 175,
+      hold: 90,
       yoyo: true,
     });
     ctx.scene.cameras.main.shake(180, 0.0022);

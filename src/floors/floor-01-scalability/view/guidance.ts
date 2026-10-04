@@ -13,16 +13,17 @@ const createArrow = (
   label: string,
 ) => {
   const color = ctx.theme.colors.warning;
-  const shaft =
-    direction === "right"
-      ? ctx.scene.add.rectangle(-9, 0, 28, 8, color)
-      : ctx.scene.add.rectangle(0, direction === "up" ? 9 : -9, 8, 28, color);
-  const tip =
-    direction === "up"
-      ? ctx.scene.add.triangle(0, -13, -13, 8, 13, 8, 0, -10, color)
-      : direction === "down"
-        ? ctx.scene.add.triangle(0, 13, -13, -8, 13, -8, 0, 10, color)
-        : ctx.scene.add.triangle(14, 0, -8, -13, -8, 13, 10, 0, color);
+  const glyph = ctx.scene.add.graphics().fillStyle(color);
+  if (direction === "up") {
+    glyph.fillRect(-4, -2, 8, 24);
+    glyph.fillTriangle(-13, 0, 13, 0, 0, -16);
+  } else if (direction === "down") {
+    glyph.fillRect(-4, -22, 8, 24);
+    glyph.fillTriangle(-13, 0, 13, 0, 0, 16);
+  } else {
+    glyph.fillRect(-22, -4, 24, 8);
+    glyph.fillTriangle(0, -13, 0, 13, 16, 0);
+  }
   const labelText = ctx.scene.add
     .text(
       direction === "right" ? -12 : 0,
@@ -39,7 +40,7 @@ const createArrow = (
     )
     .setOrigin(direction === "right" ? 1 : 0.5, 0.5);
   const arrow = ctx.scene.add
-    .container(x, y, [shaft, tip, labelText])
+    .container(x, y, [glyph, labelText])
     .setDepth(697)
     .setVisible(false);
   if (!ctx.preferences.reducedMotion) {
