@@ -35,7 +35,7 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
   });
   ctx.scene.physics.add.collider(ctx.player, specialist);
   ctx.scene.add
-    .text(specialist.x, specialist.y - 54, "Rhea Boot // SRE LEAD", {
+    .text(specialist.x, specialist.y - 54, "Rhea Boot", {
       color: colorHex(ctx.theme.colors.ink),
       fontFamily: ctx.theme.fonts.family,
       fontSize: "15px",

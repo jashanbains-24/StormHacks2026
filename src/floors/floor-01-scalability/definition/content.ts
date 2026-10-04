@@ -14,7 +14,7 @@ export const onboardingDialogue: FloorDialogueLine[] = [
     id: "f01_rhea_onboarding_1",
     speaker: "specialist",
     speakerName: "Rhea Boot, SRE Lead",
-    text: "I know it is your first day and you are only our new intern, but production is in trouble and I need another pair of hands.",
+    text: "I'm Rhea Boot, the SRE lead. I know it is your first day and you are only our new intern, but production is in trouble and I need another pair of hands.",
   },
   {
     id: "f01_rhea_onboarding_2",

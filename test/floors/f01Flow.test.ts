@@ -96,6 +96,7 @@ describe("Floor 1 intern flow", () => {
     const canonical = outcomeDialogueFor("canonical");
     const underRedundant = outcomeDialogueFor("under-redundant");
     expect(onboardingDialogue).toHaveLength(5);
+    expect(onboardingDialogue[0]?.text).toContain("Rhea Boot, the SRE lead");
     expect(onboardingDialogue[2]?.text).toContain("two servers");
     expect(onboardingDialogue[2]?.text).toContain("up to five");
     expect(onboardingDialogue[2]?.text).toContain("N+1");
@@ -185,16 +186,36 @@ describe("Floor 1 intern flow", () => {
     const internChair = INTERN_WORKSTATION_PROPS.find((prop) =>
       prop.texture.includes("chair"),
     );
+    const facingChairs = F01_OFFICE_PROPS.filter(
+      (prop) => prop.texture === "chair-back" && [775, 905].includes(prop.x),
+    );
     const otherChairs = F01_OFFICE_PROPS.filter(
       (prop) =>
-        prop.texture.includes("chair") && !officeDeskChairs.includes(prop),
+        prop.texture.includes("chair") &&
+        !officeDeskChairs.includes(prop) &&
+        !facingChairs.includes(prop),
     );
 
     expect(officeDeskChairs).toHaveLength(3);
     [...officeDeskChairs, internChair].forEach((chair) =>
       expect(chair?.angle).toBe(0),
     );
+    expect(facingChairs.map(({ x, y, angle }) => [x, y, angle])).toEqual([
+      [775, 495, 270],
+      [905, 495, 90],
+    ]);
     otherChairs.forEach((chair) => expect(chair.angle).toBe(180));
+  });
+
+  it("places the mug on the intern's desk", () => {
+    const mug = F01_OFFICE_PROPS.find((prop) => prop.texture === "coffee");
+
+    expect(mug).toMatchObject({
+      x: 765,
+      y: 165,
+      collider: false,
+      depthOffset: 20,
+    });
   });
 
   it("keeps side-desk and upper conference chairs close to their tables", () => {
