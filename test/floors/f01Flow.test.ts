@@ -106,6 +106,18 @@ describe("Floor 1 intern flow", () => {
     );
   });
 
+  it("restores a saved canonical debrief without requiring another stress test", () => {
+    const quest = new F01QuestProgress(true);
+    expect(quest.hasMetRhea).toBe(true);
+    expect(quest.needsDebrief).toBe(true);
+    expect(quest.consoleUnlocked).toBe(false);
+    expect(quest.guidanceTarget).toBe("rhea");
+    expect(quest.latestResult?.id).toBe("canonical");
+    quest.finishDebrief();
+    expect(quest.handoffReady).toBe(true);
+    expect(quest.guidanceTarget).toBe("elevator");
+  });
+
   it("provides onboarding and result-specific teaching dialogue", () => {
     const canonical = outcomeDialogueFor("canonical");
     const underRedundant = outcomeDialogueFor("under-redundant");

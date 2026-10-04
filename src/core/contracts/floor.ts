@@ -166,6 +166,8 @@ export interface FloorContext {
     ): { quality: DesignQuality; debtNotes: string[] } | undefined;
     completedThisSession(order: number): boolean;
     canonicalThisSession(order: number): boolean;
+    handoffPending(order: number): boolean;
+    confirmHandoff(order: number): void;
     report(order: number, quality: DesignQuality, debtNotes: string[]): void;
     flag(name: string): string | undefined;
     setFlag(name: string, value: string): void;

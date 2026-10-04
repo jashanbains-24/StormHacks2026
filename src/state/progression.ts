@@ -1,4 +1,5 @@
 import type { DesignQuality } from "../sim/types";
+import { handoffFlagFor } from "../sim/floorAccess";
 
 export interface FloorResult {
   quality: DesignQuality;
@@ -40,7 +41,9 @@ const withoutDataFloorProgress = (
   const flags = Object.fromEntries(
     Object.entries(state.flags).filter(([key]) => !key.startsWith("floor2.")),
   );
-  const floor1Solved = floorResults[1] !== undefined;
+  const floor1Solved =
+    floorResults[1]?.quality === "canonical" &&
+    flags[handoffFlagFor(1)] !== "pending";
   return {
     unlockedFloor: Math.min(state.unlockedFloor, floor1Solved ? 2 : 1),
     floorResults,
@@ -80,6 +83,23 @@ export class ProgressionStore {
     return this.sessionResults.get(floorId) === "canonical";
   }
 
+  handoffPending(floorId: number): boolean {
+    return this.state.flags[handoffFlagFor(floorId)] === "pending";
+  }
+
+  confirmHandoff(floorId: number): ProgressionState {
+    if (this.state.floorResults[floorId]?.quality !== "canonical") {
+      return this.snapshot;
+    }
+    this.state = {
+      ...this.state,
+      unlockedFloor: Math.max(this.state.unlockedFloor, floorId + 1),
+      flags: { ...this.state.flags, [handoffFlagFor(floorId)]: "complete" },
+    };
+    this.persist();
+    return this.snapshot;
+  }
+
   completeFloor(
     floorId: number,
     quality: DesignQuality,
@@ -87,17 +107,34 @@ export class ProgressionStore {
   ): ProgressionState {
     if (quality === "failed") return this.snapshot;
 
+    const previous = this.state.floorResults[floorId];
+    const preserveCanonical =
+      previous?.quality === "canonical" && quality === "partial";
+    const flags = { ...this.state.flags };
+    if (
+      floorId === 1 &&
+      quality === "canonical" &&
+      previous?.quality !== "canonical"
+    ) {
+      flags[handoffFlagFor(floorId)] = "pending";
+    }
+
     this.state = {
-      unlockedFloor: Math.max(this.state.unlockedFloor, floorId + 1),
+      unlockedFloor: Math.max(
+        this.state.unlockedFloor,
+        floorId === 1 ? 1 : floorId + 1,
+      ),
       floorResults: {
         ...this.state.floorResults,
-        [floorId]: {
-          quality,
-          debtNotes: [...debtNotes],
-          completedAt: new Date().toISOString(),
-        },
+        [floorId]: preserveCanonical
+          ? previous
+          : {
+              quality,
+              debtNotes: [...debtNotes],
+              completedAt: new Date().toISOString(),
+            },
       },
-      flags: { ...this.state.flags },
+      flags,
     };
     this.sessionResults.set(floorId, quality);
     this.persist();

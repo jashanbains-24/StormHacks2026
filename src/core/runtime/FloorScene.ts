@@ -11,6 +11,9 @@ import type { Interactable } from "../../entities/Interactable";
 import { Npc } from "../../entities/Npc";
 import { Player } from "../../entities/Player";
 import type { SimulationState } from "../../sim/types";
+import { floorLockReason } from "../../sim/floorAccess";
+import { FLOOR_LOCK_MESSAGES } from "../../data/elevator";
+import { ElevatorPanel } from "../../ui/ElevatorPanel";
 import { preferences } from "../../state/preferences";
 import { floorShowsAlert, progression } from "../../state/progression";
 import { audio } from "../../systems/AudioSystem";
@@ -31,6 +34,8 @@ export class FloorScene extends Phaser.Scene {
   private interactables: Interactable[] = [];
   private emergencyLights: Phaser.GameObjects.Arc[] = [];
   private emergencyTheme?: ThemeTokens;
+  private elevatorPanel?: ElevatorPanel;
+  private travelling = false;
 
   constructor() {
     super("FloorScene");
@@ -46,6 +51,8 @@ export class FloorScene extends Phaser.Scene {
     this.currentFloor = data.floor ?? 0;
     this.preview = data.preview ?? { enabled: false, state: "calm" };
     this.simulationSnapshot = data.simulationSnapshot;
+    this.elevatorPanel = undefined;
+    this.travelling = false;
   }
 
   create(): void {
@@ -79,6 +86,10 @@ export class FloorScene extends Phaser.Scene {
   }
 
   update(): void {
+    if (this.elevatorPanel || this.travelling) {
+      this.player.setVelocity(0, 0);
+      return;
+    }
     this.player.update();
     this.updaters.forEach((update) => update());
     this.interactions.update();
@@ -132,6 +143,11 @@ export class FloorScene extends Phaser.Scene {
           progression.wasCompletedThisSession(order),
         canonicalThisSession: (order) =>
           progression.wasCanonicallyCompletedThisSession(order),
+        handoffPending: (order) => progression.handoffPending(order),
+        confirmHandoff: (order) => {
+          progression.confirmHandoff(order);
+          gameEvents.emit("progression:updated", progression.snapshot);
+        },
         report: (order, quality, debtNotes) => {
           progression.completeFloor(order, quality, debtNotes);
           gameEvents.emit("progression:updated", progression.snapshot);
@@ -299,7 +315,7 @@ export class FloorScene extends Phaser.Scene {
       .setDepth(elevatorY + 1);
     ctx.addInteractable({
       id: `${getFloorByOrder(this.currentFloor).module.id}:elevator`,
-      label: this.elevatorLabel(),
+      label: "Enter elevator / choose a floor",
       x: GAME_WIDTH - 135,
       y: elevatorY,
       range: 105,
@@ -307,38 +323,36 @@ export class FloorScene extends Phaser.Scene {
     });
   }
 
-  private elevatorDestination(): number {
-    const floors = getFloors();
-    const index = floors.findIndex(
-      (floor) => floor.order === this.currentFloor,
-    );
-    return floors[index + 1]?.order ?? floors[Math.max(0, index - 1)].order;
-  }
-
-  private elevatorLabel(): string {
-    const destination = getFloorByOrder(this.elevatorDestination());
-    return destination.order > this.currentFloor
-      ? `Take elevator to ${destination.module.title}`
-      : `Return to ${destination.module.title}`;
-  }
-
   private useElevator(): void {
-    const destination = this.elevatorDestination();
-    if (
-      destination > this.currentFloor &&
-      progression.snapshot.unlockedFloor < destination
-    ) {
-      gameEvents.emit(
-        "ui:toast",
-        `${getFloorByOrder(destination).module.title} is locked. Stabilize this floor first.`,
-      );
-      return;
-    }
-    this.navigateTo(destination);
+    if (this.elevatorPanel || this.travelling) return;
+    this.player.setVelocity(0, 0);
+    this.physics.world.pause();
+    audio.playClick();
+    this.elevatorPanel = new ElevatorPanel(this, {
+      currentFloor: this.currentFloor,
+      floors: getFloors().map(({ order, module }) => ({
+        order,
+        title: module.title,
+      })),
+      progression: () => progression.snapshot,
+      onTravel: (order) => this.navigateTo(order),
+      onClose: () => {
+        this.elevatorPanel = undefined;
+        this.physics.world.resume();
+      },
+    });
   }
 
   private navigateTo(order: number): void {
     getFloorByOrder(order);
+    if (this.travelling || order === this.currentFloor) return;
+    const reason = floorLockReason(order, progression.snapshot);
+    if (reason) {
+      gameEvents.emit("ui:toast", FLOOR_LOCK_MESSAGES[reason]);
+      return;
+    }
+    this.travelling = true;
+    this.elevatorPanel?.destroy();
     this.cameras.main.fadeOut(220, 31, 41, 51);
     this.time.delayedCall(230, () =>
       this.scene.restart({

@@ -62,6 +62,7 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
           runtime.dialogueOpen = false;
           quest.finishDebrief();
           if (result.id === "canonical") {
+            ctx.progression.confirmHandoff(ctx.floorOrder);
             ctx.hud.setObjective(
               "Incident resolved: take the elevator to your next assignment",
             );
