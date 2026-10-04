@@ -102,6 +102,8 @@ export class FloorScene extends Phaser.Scene {
       dialogue: {
         showSpecialist: () =>
           gameEvents.emit("dialogue:specialist", floor.module.id),
+        showSequence: (lines, onDismiss) =>
+          gameEvents.emit("dialogue:sequence", lines, onDismiss),
         dismiss: () => gameEvents.emit("dialogue:dismiss"),
       },
       glossary: {
@@ -121,6 +123,12 @@ export class FloorScene extends Phaser.Scene {
       },
       events: {
         emit: (name, ...args) => gameEvents.emit(name, ...args),
+        on: (name, listener) => {
+          const unsubscribe = () => gameEvents.off(name, listener);
+          gameEvents.on(name, listener);
+          this.events.once(Phaser.Scenes.Events.SHUTDOWN, unsubscribe);
+          return unsubscribe;
+        },
       },
       assets: {
         key: (localName) =>

@@ -482,6 +482,10 @@ export class BuildScene extends Phaser.Scene {
       );
       gameEvents.emit("progression:updated", progression.snapshot);
     }
+    gameEvents.emit("build:result", this.floorOrder, {
+      ...evaluation,
+      debtNotes: [...evaluation.debtNotes],
+    });
 
     const panel = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT / 2);
     panel.setDepth(200);

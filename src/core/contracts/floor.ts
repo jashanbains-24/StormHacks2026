@@ -137,6 +137,7 @@ export interface FloorContext {
   };
   readonly dialogue: {
     showSpecialist(): void;
+    showSequence(lines: FloorDialogueLine[], onDismiss?: () => void): void;
     dismiss(): void;
   };
   readonly glossary: {
@@ -152,6 +153,7 @@ export interface FloorContext {
   };
   readonly events: {
     emit(name: string, ...args: unknown[]): void;
+    on(name: string, listener: (...args: unknown[]) => void): () => void;
   };
   readonly assets: {
     key(localName: string): string;

@@ -4,12 +4,19 @@ import { GAME_HEIGHT, GAME_WIDTH } from "../config/dimensions";
 import { THEME, colorHex } from "../config/theme";
 import type { FloorDialogueLine, FloorGlossaryEntry } from "../core/contracts";
 
+interface SpeechBubbleActions {
+  onClose?: () => void;
+  actionLabel?: string;
+  onAction?: () => void;
+}
+
 export class SpeechBubble extends Phaser.GameObjects.Container {
   constructor(
     scene: Phaser.Scene,
     line: FloorDialogueLine,
     glossaryById: Readonly<Record<string, FloorGlossaryEntry>>,
     onGlossary: (entry: FloorGlossaryEntry) => void,
+    actions: SpeechBubbleActions = {},
   ) {
     super(scene, 0, 0);
     scene.add.existing(this);
@@ -40,7 +47,7 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
         fontSize: "28px",
       })
       .setInteractive({ useHandCursor: true })
-      .on("pointerup", () => this.destroy());
+      .on("pointerup", () => (actions.onClose ?? (() => this.destroy()))());
     this.add([panel, speaker, body, close]);
 
     let chipX = 80;
@@ -66,6 +73,22 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
       }
       chipX += chip.width + 9;
       this.add(chip);
+    }
+
+    if (actions.actionLabel && actions.onAction) {
+      const action = scene.add
+        .text(GAME_WIDTH - 92, y + 140, actions.actionLabel, {
+          color: colorHex(THEME.colors.white),
+          backgroundColor: colorHex(THEME.colors.success),
+          fontFamily: THEME.fonts.mono,
+          fontSize: "15px",
+          fontStyle: "bold",
+          padding: { x: 12, y: 7 },
+        })
+        .setOrigin(1, 0)
+        .setInteractive({ useHandCursor: true })
+        .on("pointerup", actions.onAction);
+      this.add(action);
     }
   }
 }

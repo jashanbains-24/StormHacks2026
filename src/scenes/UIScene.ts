@@ -2,7 +2,7 @@ import Phaser from "phaser";
 
 import { GAME_HEIGHT, GAME_WIDTH } from "../config/dimensions";
 import { THEME, colorHex } from "../config/theme";
-import type { FloorGlossaryEntry } from "../core/contracts";
+import type { FloorDialogueLine, FloorGlossaryEntry } from "../core/contracts";
 import { getFloorById, getFloorByOrder } from "../core/runtime/floorRegistry";
 import { preferences } from "../state/preferences";
 import { progression } from "../state/progression";
@@ -25,6 +25,11 @@ export class UIScene extends Phaser.Scene {
   private motionToggle!: Phaser.GameObjects.Text;
   private currentFloor = 0;
   private glossaryById: Record<string, FloorGlossaryEntry> = {};
+  private activeDialogue?: {
+    lines: FloorDialogueLine[];
+    index: number;
+    onDismiss?: () => void;
+  };
 
   constructor() {
     super("UIScene");
@@ -63,12 +68,14 @@ export class UIScene extends Phaser.Scene {
     gameEvents.on("interaction:clear", this.hideInteraction, this);
     gameEvents.on("floor:changed", this.handleFloorChanged, this);
     gameEvents.on("dialogue:specialist", this.showSpecialistHint, this);
+    gameEvents.on("dialogue:sequence", this.showDialogueSequence, this);
     gameEvents.on("dialogue:dismiss", this.dismissDialogue, this);
     gameEvents.on("ui:toast", this.showToast, this);
     gameEvents.on("ui:objective", this.setObjective, this);
     gameEvents.on("build:open", this.openBuildScene, this);
     gameEvents.on("build:closed", this.handleBuildClosed, this);
     gameEvents.on("progression:updated", this.handleProgressionUpdated, this);
+    this.input.keyboard?.on("keydown-ESC", this.dismissDialogue, this);
 
     if (tutorial.managerAlert) {
       this.notification = new Notification(
@@ -113,18 +120,62 @@ export class UIScene extends Phaser.Scene {
   }
 
   private showSpecialistHint(): void {
-    audio.playClick();
-    this.speech?.destroy();
     const line = this.dialogue.nextSpecialistHint();
     if (!line) return;
-    this.speech = new SpeechBubble(this, line, this.glossaryById, (entry) =>
-      this.showGlossary(entry),
+    this.showDialogueSequence([line]);
+  }
+
+  private showDialogueSequence(
+    lines: FloorDialogueLine[],
+    onDismiss?: () => void,
+  ): void {
+    if (lines.length === 0) return;
+    audio.playClick();
+    this.dismissDialogue();
+    this.activeDialogue = { lines, index: 0, onDismiss };
+    this.renderDialogueLine();
+  }
+
+  private renderDialogueLine(): void {
+    const active = this.activeDialogue;
+    if (!active) return;
+    this.speech?.destroy();
+    const line = active.lines[active.index];
+    if (!line) {
+      this.dismissDialogue();
+      return;
+    }
+    const finalLine = active.index === active.lines.length - 1;
+    this.speech = new SpeechBubble(
+      this,
+      line,
+      this.glossaryById,
+      (entry) => this.showGlossary(entry),
+      {
+        onClose: () => this.dismissDialogue(),
+        actionLabel: finalLine ? "DONE" : "NEXT →",
+        onAction: () => this.advanceDialogue(),
+      },
     );
+  }
+
+  private advanceDialogue(): void {
+    const active = this.activeDialogue;
+    if (!active) return;
+    if (active.index >= active.lines.length - 1) {
+      this.dismissDialogue();
+      return;
+    }
+    active.index += 1;
+    this.renderDialogueLine();
   }
 
   private dismissDialogue(): void {
     this.speech?.destroy();
     this.speech = undefined;
+    const onDismiss = this.activeDialogue?.onDismiss;
+    this.activeDialogue = undefined;
+    onDismiss?.();
   }
 
   private showGlossary(entry: FloorGlossaryEntry): void {
@@ -243,11 +294,13 @@ export class UIScene extends Phaser.Scene {
     gameEvents.off("interaction:clear", this.hideInteraction, this);
     gameEvents.off("floor:changed", this.handleFloorChanged, this);
     gameEvents.off("dialogue:specialist", this.showSpecialistHint, this);
+    gameEvents.off("dialogue:sequence", this.showDialogueSequence, this);
     gameEvents.off("dialogue:dismiss", this.dismissDialogue, this);
     gameEvents.off("ui:toast", this.showToast, this);
     gameEvents.off("ui:objective", this.setObjective, this);
     gameEvents.off("build:open", this.openBuildScene, this);
     gameEvents.off("build:closed", this.handleBuildClosed, this);
     gameEvents.off("progression:updated", this.handleProgressionUpdated, this);
+    this.input.keyboard?.off("keydown-ESC", this.dismissDialogue, this);
   }
 }
