@@ -63,7 +63,8 @@ class AudioSystem {
     const volume = Phaser.Math.Clamp(options.volume ?? 0.35, 0, 1);
     const music = manager.add(key, {
       loop: options.loop ?? true,
-      volume: preferences.snapshot.muted ? 0 : volume,
+      volume,
+      mute: preferences.snapshot.muted,
     }) as unknown as BackgroundMusicHandle;
     this.music = music;
     this.musicKey = key;
