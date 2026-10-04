@@ -114,7 +114,7 @@ export const F01_OFFICE_PROPS: OfficePropPlacement[] = [
   },
   {
     x: 1000,
-    y: 283,
+    y: 330,
     texture: "cushioned-chair-front",
     angle: 180,
     scale: 3,
@@ -209,7 +209,7 @@ export const F01_OFFICE_PROPS: OfficePropPlacement[] = [
     collisionBox: { width: 82, height: 38, offsetY: 5 },
   },
   {
-    x: 775,
+    x: 745,
     y: 495,
     texture: "chair-back",
     angle: 270,
@@ -217,7 +217,7 @@ export const F01_OFFICE_PROPS: OfficePropPlacement[] = [
     collisionBox: chairCollision,
   },
   {
-    x: 905,
+    x: 935,
     y: 495,
     texture: "chair-back",
     angle: 90,

@@ -187,7 +187,7 @@ describe("Floor 1 intern flow", () => {
       prop.texture.includes("chair"),
     );
     const facingChairs = F01_OFFICE_PROPS.filter(
-      (prop) => prop.texture === "chair-back" && [775, 905].includes(prop.x),
+      (prop) => prop.texture === "chair-back" && [745, 935].includes(prop.x),
     );
     const otherChairs = F01_OFFICE_PROPS.filter(
       (prop) =>
@@ -201,8 +201,8 @@ describe("Floor 1 intern flow", () => {
       expect(chair?.angle).toBe(0),
     );
     expect(facingChairs.map(({ x, y, angle }) => [x, y, angle])).toEqual([
-      [775, 495, 270],
-      [905, 495, 90],
+      [745, 495, 270],
+      [935, 495, 90],
     ]);
     otherChairs.forEach((chair) => expect(chair.angle).toBe(180));
   });
@@ -227,7 +227,7 @@ describe("Floor 1 intern flow", () => {
         [430, 560].includes(prop.x) && prop.texture === "cushioned-chair-back",
     );
 
-    expect(sideDeskChairs.map(({ y }) => y)).toEqual([193, 283]);
+    expect(sideDeskChairs.map(({ y }) => y)).toEqual([193, 330]);
     expect(upperConferenceChairs.map(({ y }) => y)).toEqual([385, 385]);
   });
 
