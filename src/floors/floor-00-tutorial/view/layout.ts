@@ -134,14 +134,13 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
   });
   ctx.scene.physics.add.collider(ctx.player, mentor);
   ctx.scene.add
-    .text(766, 382, "Maya Mentor // Platform Coach", {
+    .text(214, 276, "Maya", {
       color: colorHex(ctx.theme.colors.ink),
       fontFamily: ctx.theme.fonts.family,
       fontSize: "15px",
       backgroundColor: colorHex(ctx.theme.colors.panel),
       padding: { x: 7, y: 4 },
     })
-    .setPosition(214, 276)
     .setDepth(600);
   ctx.addInteractable({
     id: "f00:mentor",

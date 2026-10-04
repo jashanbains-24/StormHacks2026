@@ -132,5 +132,15 @@ acknowledged Rhea's debrief, and travelled onward without an exception.
 
 ## Remaining sequence
 
-1. Run the complete game flow, check for the teammate's newer main changes,
+The user added another UI pass, still one verified milestone at a time:
+
+1. Simplify Maya's lobby label and all her dialogue headings to "Maya" (done).
+2. Remove the panic staff's flailing arms on both incident floors; keep warning
+   markers and the current running speed.
+3. Share Floor 2's nearby-only NPC name labels with Maya and Rhea.
+4. Give Floor 1 Floor 2's rich dialogue bubbles and inline hover/click term cards,
+   replacing the glossary chips while preserving E and Next/Done.
+5. Share a persistent bottom-left glossary across floors and puzzle screens,
+   retaining opened terms while travelling and handling long lists.
+6. Run the complete game flow, check for the teammate's newer main changes,
    integrate them as needed, and prepare the PR.
