@@ -34,19 +34,28 @@ export class BuildNode extends Phaser.GameObjects.Container {
       })
       .setOrigin(0.5);
     this.statusText = scene.add
-      .text(0, 17, componentType === "client" ? "70 RPS" : "IDLE", {
-        color: colorHex(THEME.colors.muted),
-        fontFamily: THEME.fonts.mono,
-        fontSize: "11px",
-      })
+      .text(
+        0,
+        17,
+        componentType === "client"
+          ? "70 RPS"
+          : componentType === "source"
+            ? "START"
+            : "IDLE",
+        {
+          color: colorHex(THEME.colors.muted),
+          fontFamily: THEME.fonts.mono,
+          fontSize: "11px",
+        },
+      )
       .setOrigin(0.5);
     this.add([this.panel, label, this.statusText]);
 
-    if (componentType !== "client") {
+    if (componentType !== "client" && componentType !== "source") {
       this.inputPort = this.createPort(-76, "IN");
       this.add(this.inputPort);
     }
-    if (componentType !== "server") {
+    if (componentType !== "server" && componentType !== "destination") {
       this.outputPort = this.createPort(76, "OUT");
       this.add(this.outputPort);
     }
@@ -74,7 +83,13 @@ export class BuildNode extends Phaser.GameObjects.Container {
     this.panel.setStrokeStyle(4, this.baseColor());
     this.statusText
       .setColor(colorHex(THEME.colors.muted))
-      .setText(this.componentType === "client" ? "TRAFFIC" : "IDLE");
+      .setText(
+        this.componentType === "client"
+          ? "TRAFFIC"
+          : this.componentType === "source"
+            ? "START"
+            : "IDLE",
+      );
   }
 
   private createPort(x: number, label: string): Phaser.GameObjects.Arc {
@@ -94,8 +109,16 @@ export class BuildNode extends Phaser.GameObjects.Container {
   }
 
   private baseColor(): number {
-    if (this.componentType === "client") return THEME.colors.officeWall;
+    if (this.componentType === "client" || this.componentType === "source") {
+      return THEME.colors.officeWall;
+    }
     if (this.componentType === "loadBalancer") return THEME.colors.warning;
+    if (
+      this.componentType === "connector" ||
+      this.componentType === "destination"
+    ) {
+      return THEME.colors.successLight;
+    }
     return THEME.colors.success;
   }
 }

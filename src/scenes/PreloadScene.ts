@@ -135,6 +135,12 @@ export class PreloadScene extends Phaser.Scene {
         repeat: -1,
       });
       this.anims.create({
+        key: `office-${texture}-idle-up`,
+        frames: this.anims.generateFrameNumbers(texture, { frames: [10, 11] }),
+        frameRate: 2,
+        repeat: -1,
+      });
+      this.anims.create({
         key: `office-${texture}-walk-down`,
         frames: this.anims.generateFrameNumbers(texture, {
           frames: [0, 1, 2],
