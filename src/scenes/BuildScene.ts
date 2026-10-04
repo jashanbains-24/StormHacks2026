@@ -6,6 +6,7 @@ import { getFloorByOrder } from "../core/runtime/floorRegistry";
 import { BUILD_COPY } from "../data/build";
 import { evaluateDesign } from "../sim/evaluator";
 import { createSimulation, tickSimulation } from "../sim/simulation";
+import { evaluateTutorialDesign } from "../sim/tutorialEvaluator";
 import type {
   ComponentType,
   DesignConnection,
@@ -13,7 +14,10 @@ import type {
   SimulationState,
   SystemDesign,
 } from "../sim/types";
-import { buildDesignStore } from "../state/buildDesign";
+import {
+  buildDesignStore,
+  tutorialBuildDesignStore,
+} from "../state/buildDesign";
 import { preferences } from "../state/preferences";
 import { progression } from "../state/progression";
 import { audio } from "../systems/AudioSystem";
@@ -48,6 +52,16 @@ export class BuildScene extends Phaser.Scene {
   private crashCount = 0;
   private floorOrder = 1;
   private evaluatedSinceOpen = false;
+  private tutorialMode = false;
+  private tutorialStage: "name" | "confirm" | "questions" = "name";
+  private tutorialName = "";
+  private tutorialQuestionIndex = 0;
+  private tutorialAnswer = "";
+  private tutorialPromptText?: Phaser.GameObjects.Text;
+  private tutorialInputText?: Phaser.GameObjects.Text;
+  private tutorialCircleDisplay?: Phaser.GameObjects.Container;
+  private tutorialActionButton?: Phaser.GameObjects.Container;
+  private tutorialSecondaryButton?: Phaser.GameObjects.Container;
 
   constructor() {
     super("BuildScene");
@@ -66,14 +80,36 @@ export class BuildScene extends Phaser.Scene {
     this.trafficDots = [];
     this.outcomePanel = undefined;
     this.crashCount = 0;
+    this.tutorialMode =
+      getFloorByOrder(this.floorOrder).module.definition.incident.buildMode ===
+      "tutorial";
   }
 
   create(): void {
     this.input.mouse?.disableContextMenu();
     this.cameras.main.setBackgroundColor(THEME.colors.ink);
+    if (this.tutorialMode) {
+      this.createTutorialForm();
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+        this.input.keyboard?.off("keydown", this.handleTutorialKey, this);
+        this.input.keyboard?.off(
+          "keydown-ENTER",
+          this.handleTutorialEnter,
+          this,
+        );
+        this.input.removeAllListeners();
+      });
+      return;
+    }
     this.createChrome();
     this.wireGraphics = this.add.graphics().setDepth(5);
-    new Palette(this, 18, 108, (type, x, y) => this.addComponent(type, x, y));
+    new Palette(
+      this,
+      18,
+      108,
+      (type, x, y) => this.addComponent(type, x, y),
+      this.tutorialMode,
+    );
 
     this.restoreDesign();
     this.drawConnections();
@@ -96,6 +132,243 @@ export class BuildScene extends Phaser.Scene {
       this.input.removeAllListeners();
       this.input.keyboard?.off("keydown-ESC", this.closeBuild, this);
     });
+  }
+
+  private createTutorialForm(): void {
+    this.add
+      .rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, THEME.colors.paper)
+      .setOrigin(0);
+    this.add
+      .rectangle(0, 0, GAME_WIDTH, 96, THEME.colors.panelDark)
+      .setOrigin(0);
+    this.add.text(28, 20, "NEW HIRE ONBOARDING", {
+      color: colorHex(THEME.colors.white),
+      fontFamily: THEME.fonts.mono,
+      fontSize: "25px",
+      fontStyle: "bold",
+    });
+    this.add.text(28, 58, "Preliminary questions // Stack Never Flow Inc.", {
+      color: colorHex(THEME.colors.successLight),
+      fontFamily: THEME.fonts.family,
+      fontSize: "15px",
+    });
+    this.add
+      .text(GAME_WIDTH - 34, 18, "×", {
+        color: colorHex(THEME.colors.white),
+        fontFamily: THEME.fonts.family,
+        fontSize: "34px",
+      })
+      .setOrigin(1, 0)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerup", () => this.closeBuild());
+
+    this.add
+      .rectangle(GAME_WIDTH / 2, 360, 760, 430, THEME.colors.panel)
+      .setStrokeStyle(5, THEME.colors.officeWall);
+    this.tutorialPromptText = this.add
+      .text(GAME_WIDTH / 2, 205, "", {
+        align: "center",
+        color: colorHex(THEME.colors.ink),
+        fontFamily: THEME.fonts.family,
+        fontSize: "27px",
+        fontStyle: "bold",
+        wordWrap: { width: 650 },
+      })
+      .setOrigin(0.5);
+    this.tutorialInputText = this.add
+      .text(GAME_WIDTH / 2, 345, "", {
+        align: "center",
+        color: colorHex(THEME.colors.ink),
+        fontFamily: THEME.fonts.mono,
+        fontSize: "25px",
+        backgroundColor: colorHex(THEME.colors.white),
+        padding: { x: 18, y: 14 },
+        wordWrap: { width: 620 },
+      })
+      .setOrigin(0.5);
+    this.tutorialCircleDisplay = this.add.container(GAME_WIDTH / 2, 284);
+    [
+      THEME.colors.alert,
+      THEME.colors.alert,
+      THEME.colors.alert,
+      THEME.colors.alert,
+      0x4f8bc9,
+      THEME.colors.warning,
+      0x9b76c7,
+    ].forEach((color, index) => {
+      this.tutorialCircleDisplay?.add(
+        this.add
+          .circle((index - 3) * 58, 0, 18, color)
+          .setStrokeStyle(3, THEME.colors.ink),
+      );
+    });
+    this.tutorialCircleDisplay.setVisible(false);
+    this.add
+      .text(GAME_WIDTH / 2, 440, "Type your answer, then press ENTER.", {
+        color: colorHex(THEME.colors.muted),
+        fontFamily: THEME.fonts.family,
+        fontSize: "16px",
+      })
+      .setOrigin(0.5);
+    this.refreshTutorialForm();
+    this.input.keyboard?.on("keydown", this.handleTutorialKey, this);
+    this.input.keyboard?.on("keydown-ENTER", this.handleTutorialEnter, this);
+  }
+
+  private readonly handleTutorialEnter = (): void => {
+    this.submitTutorialInput();
+  };
+
+  private readonly handleTutorialKey = (event: KeyboardEvent): void => {
+    if (event.key === "Backspace") {
+      if (this.tutorialStage === "name") {
+        this.tutorialName = this.tutorialName.slice(0, -1);
+      } else if (this.tutorialStage === "questions") {
+        this.tutorialAnswer = this.tutorialAnswer.slice(0, -1);
+      }
+      this.refreshTutorialForm();
+      return;
+    }
+    if (event.key.length !== 1 || event.ctrlKey || event.metaKey) return;
+    if (this.tutorialStage === "name" && this.tutorialName.length < 32) {
+      this.tutorialName += event.key;
+    } else if (
+      this.tutorialStage === "questions" &&
+      this.tutorialAnswer.length < 40
+    ) {
+      this.tutorialAnswer += event.key;
+    }
+    this.refreshTutorialForm();
+  };
+
+  private refreshTutorialForm(): void {
+    if (!this.tutorialPromptText || !this.tutorialInputText) return;
+    this.tutorialCircleDisplay?.setVisible(
+      this.tutorialStage === "questions" && this.tutorialQuestionIndex === 0,
+    );
+    this.tutorialActionButton?.destroy();
+    this.tutorialSecondaryButton?.destroy();
+    this.tutorialActionButton = undefined;
+    this.tutorialSecondaryButton = undefined;
+
+    if (this.tutorialStage === "name") {
+      this.tutorialPromptText.setText("What should we call you?");
+      this.tutorialInputText.setText(this.tutorialName || "Type your name…");
+      this.tutorialActionButton = this.createTutorialButton(
+        GAME_WIDTH / 2,
+        520,
+        "SUBMIT NAME",
+        () => this.submitTutorialInput(),
+      );
+      return;
+    }
+    if (this.tutorialStage === "confirm") {
+      this.tutorialPromptText.setText(`Your name is "${this.tutorialName}".`);
+      this.tutorialInputText.setText("Is that correct?");
+      this.tutorialActionButton = this.createTutorialButton(
+        GAME_WIDTH / 2 - 110,
+        520,
+        "YES",
+        () => {
+          this.tutorialStage = "questions";
+          this.tutorialQuestionIndex = 0;
+          this.tutorialAnswer = "";
+          this.refreshTutorialForm();
+        },
+      );
+      this.tutorialSecondaryButton = this.createTutorialButton(
+        GAME_WIDTH / 2 + 110,
+        520,
+        "EDIT",
+        () => {
+          this.tutorialStage = "name";
+          this.tutorialName = "";
+          this.refreshTutorialForm();
+        },
+        THEME.colors.warning,
+      );
+      return;
+    }
+    const questions = [
+      "How many of the 7 circles are red?",
+      "What is 2 × 5?",
+      "What language are webpages built from?",
+    ];
+    this.tutorialPromptText.setText(
+      `Preliminary question ${this.tutorialQuestionIndex + 1} of 3\n${questions[this.tutorialQuestionIndex]}`,
+    );
+    this.tutorialInputText.setText(this.tutorialAnswer || "Type your answer…");
+    this.tutorialActionButton = this.createTutorialButton(
+      GAME_WIDTH / 2,
+      520,
+      "SUBMIT ANSWER",
+      () => this.submitTutorialInput(),
+    );
+  }
+
+  private submitTutorialInput(): void {
+    if (this.tutorialStage === "name") {
+      const name = this.tutorialName.trim();
+      if (!name) return;
+      this.tutorialName = name;
+      this.tutorialStage = "confirm";
+      this.refreshTutorialForm();
+      return;
+    }
+    if (this.tutorialStage === "confirm") {
+      this.tutorialStage = "questions";
+      this.tutorialQuestionIndex = 0;
+      this.tutorialAnswer = "";
+      this.refreshTutorialForm();
+      return;
+    }
+    if (this.tutorialStage !== "questions") return;
+    const answer = this.tutorialAnswer.trim().toLowerCase();
+    const accepted = [["4", "4/7"], ["10"], ["html"]];
+    if (!accepted[this.tutorialQuestionIndex].includes(answer)) {
+      this.showTutorialError("Not quite — try that one again.");
+      return;
+    }
+    this.tutorialQuestionIndex += 1;
+    this.tutorialAnswer = "";
+    if (this.tutorialQuestionIndex === accepted.length) {
+      this.completeTutorial();
+      return;
+    }
+    this.refreshTutorialForm();
+  }
+
+  private showTutorialError(message: string): void {
+    this.tutorialPromptText?.setColor(colorHex(THEME.colors.alert));
+    this.tutorialInputText?.setText(message);
+    this.time.delayedCall(1200, () => {
+      this.tutorialPromptText?.setColor(colorHex(THEME.colors.ink));
+      this.refreshTutorialForm();
+    });
+  }
+
+  private completeTutorial(): void {
+    const evaluation: Evaluation = {
+      id: "canonical",
+      quality: "canonical",
+      title: "Onboarding Complete",
+      message: `Nice work, ${this.tutorialName}! Your preliminary form is approved.`,
+      debtNotes: [],
+    };
+    progression.completeFloor(this.floorOrder, evaluation.quality, []);
+    gameEvents.emit("progression:updated", progression.snapshot);
+    gameEvents.emit("tutorial:completed", this.tutorialName);
+    this.showOutcome(evaluation);
+  }
+
+  private createTutorialButton(
+    x: number,
+    y: number,
+    label: string,
+    onClick: () => void,
+    color: number = THEME.colors.success,
+  ): Phaser.GameObjects.Container {
+    return this.createButton(x, y, 220, 52, label, color, onClick);
   }
 
   update(_time: number, deltaMs: number): void {
@@ -194,7 +467,7 @@ export class BuildScene extends Phaser.Scene {
       GAME_HEIGHT - 45,
       396,
       48,
-      BUILD_COPY.run,
+      this.tutorialMode ? "CHECK CONNECTIONS" : BUILD_COPY.run,
       THEME.colors.success,
       () => this.runStressTest(),
     );
@@ -253,14 +526,24 @@ export class BuildScene extends Phaser.Scene {
   }
 
   private restoreDesign(): void {
-    const saved = buildDesignStore.load();
+    const store = this.tutorialMode
+      ? tutorialBuildDesignStore
+      : buildDesignStore;
+    const saved = store.load();
     const design: SystemDesign = saved ?? {
-      nodes: [{ id: "client", type: "client", x: 370, y: 350 }],
+      nodes: [
+        {
+          id: this.tutorialMode ? "source" : "client",
+          type: this.tutorialMode ? "source" : "client",
+          x: 370,
+          y: 350,
+        },
+      ],
       connections: [],
     };
 
     for (const savedNode of design.nodes) {
-      const fixed = savedNode.type === "client";
+      const fixed = savedNode.type === "client" || savedNode.type === "source";
       const node = this.createNode(
         savedNode.id,
         savedNode.type,
@@ -342,12 +625,16 @@ export class BuildScene extends Phaser.Scene {
     const fromNode = this.nodes.get(from);
     const toNode = this.nodes.get(to);
     if (!fromNode || !toNode || from === to) return;
-    const valid =
-      (fromNode.componentType === "client" &&
-        (toNode.componentType === "loadBalancer" ||
-          toNode.componentType === "server")) ||
-      (fromNode.componentType === "loadBalancer" &&
-        toNode.componentType === "server");
+    const valid = this.tutorialMode
+      ? (fromNode.componentType === "source" ||
+          fromNode.componentType === "connector") &&
+        (toNode.componentType === "connector" ||
+          toNode.componentType === "destination")
+      : (fromNode.componentType === "client" &&
+          (toNode.componentType === "loadBalancer" ||
+            toNode.componentType === "server")) ||
+        (fromNode.componentType === "loadBalancer" &&
+          toNode.componentType === "server");
     if (!valid) {
       this.showConsoleMessage(BUILD_COPY.invalidConnection);
       return;
@@ -418,9 +705,16 @@ export class BuildScene extends Phaser.Scene {
   private runStressTest(): void {
     if (this.running || this.outcomePanel) return;
     const design = this.toDesign();
-    const evaluation = evaluateDesign(design);
+    const evaluation = this.tutorialMode
+      ? evaluateTutorialDesign(design)
+      : evaluateDesign(design);
     this.resetNodeStatuses();
     if (evaluation.id === "invalid") {
+      this.showOutcome(evaluation);
+      return;
+    }
+
+    if (this.tutorialMode) {
       this.showOutcome(evaluation);
       return;
     }
@@ -619,10 +913,11 @@ export class BuildScene extends Phaser.Scene {
     this.nextNodeId = 1;
     this.simulation = undefined;
     this.crashCount = 0;
-    buildDesignStore.reset();
+    (this.tutorialMode ? tutorialBuildDesignStore : buildDesignStore).reset();
 
-    const client = this.createNode("client", "client", 370, 350, true);
-    this.bindOutputPort(client);
+    const sourceType = this.tutorialMode ? "source" : "client";
+    const source = this.createNode(sourceType, sourceType, 370, 350, true);
+    this.bindOutputPort(source);
     this.resetNodeStatuses();
     this.statsText
       .setColor(colorHex(THEME.colors.successLight))
@@ -633,7 +928,9 @@ export class BuildScene extends Phaser.Scene {
   }
 
   private persistDesign(): void {
-    buildDesignStore.save(this.toDesign());
+    (this.tutorialMode ? tutorialBuildDesignStore : buildDesignStore).save(
+      this.toDesign(),
+    );
     if (this.saveText?.active) {
       this.saveText.setAlpha(1);
       this.tweens.killTweensOf(this.saveText);
@@ -723,7 +1020,10 @@ export class BuildScene extends Phaser.Scene {
   private closeBuild(): void {
     this.running = false;
     this.destroyTrafficDots();
-    buildDesignStore.clearAfterEvaluatedAttempt(this.evaluatedSinceOpen);
+    const store = this.tutorialMode
+      ? tutorialBuildDesignStore
+      : buildDesignStore;
+    store.clearAfterEvaluatedAttempt(this.evaluatedSinceOpen);
     this.scene.stop();
     this.scene.resume("FloorScene");
     gameEvents.emit("build:closed");

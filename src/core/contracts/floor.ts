@@ -14,17 +14,26 @@ export interface FloorDialogueLine {
   speakerName: string;
   text: string;
   glossaryIds?: string[];
+  choices?: readonly FloorDialogueChoice[];
+}
+
+export interface FloorDialogueChoice {
+  id: string;
+  label: string;
 }
 
 export interface FloorGlossaryEntry {
   id: string;
   term: string;
   definition: string;
+  analogy?: string;
+  realWorld?: string;
 }
 
 export interface FloorContent {
   managerAlert?: FloorDialogueLine;
   specialistHints: FloorDialogueLine[];
+  completionDialogue?: FloorDialogueLine;
   glossary: FloorGlossaryEntry[];
   tutorial: {
     move?: string;
@@ -36,6 +45,7 @@ export interface FloorContent {
 
 export interface FloorIncidentDefinition {
   title: string | null;
+  buildMode?: "standard" | "tutorial";
   availableComponents: {
     type: ComponentType;
     max: number;
@@ -126,6 +136,7 @@ export interface FloorContext {
     readonly state: FloorPreviewState;
   };
   readonly preferences: {
+    readonly muted: boolean;
     readonly reducedMotion: boolean;
   };
   readonly sim: {
@@ -139,6 +150,11 @@ export interface FloorContext {
     showSpecialist(): void;
     showSequence(lines: FloorDialogueLine[], onDismiss?: () => void): void;
     dismiss(): void;
+    showLine(line: FloorDialogueLine, onDismiss?: () => void): void;
+    showChoice(
+      line: FloorDialogueLine,
+      onChoose: (choiceId: string) => void,
+    ): void;
   };
   readonly glossary: {
     open(id: string): void;
@@ -151,6 +167,12 @@ export interface FloorContext {
     completedThisSession(order: number): boolean;
     canonicalThisSession(order: number): boolean;
     report(order: number, quality: DesignQuality, debtNotes: string[]): void;
+    flag(name: string): string | undefined;
+    setFlag(name: string, value: string): void;
+  };
+  readonly audio: {
+    playClick(): void;
+    playSuccess(): void;
   };
   readonly events: {
     emit(name: string, ...args: unknown[]): void;

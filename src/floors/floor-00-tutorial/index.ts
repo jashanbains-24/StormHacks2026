@@ -10,8 +10,8 @@ import { createLayout } from "./view/layout";
 const floor: FloorModule = {
   contractVersion: FLOOR_CONTRACT_VERSION,
   id: "f00",
-  title: "Ground Floor: Incident Response",
-  category: "Tutorial / Incident Response",
+  title: "Ground Floor: Stack Never Flow Inc. Orientation",
+  category: "Tutorial / Build Console",
   definition: { content, incident },
   view: { createLayout, createBuildUI, createEffects },
   assets,
