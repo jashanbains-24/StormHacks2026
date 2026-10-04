@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createAlarmPath,
+  resolveEmergencyMode,
+} from "../../src/floors/floor-01-scalability/view/effects";
+import {
   DIALOGUE_DISMISS_DISTANCE,
   F01_OFFICE_PROPS,
   INTERN_WORKSTATION,
@@ -48,5 +52,50 @@ describe("Floor 1 intern flow", () => {
     [...F01_OFFICE_PROPS, ...INTERN_WORKSTATION_PROPS]
       .filter((prop) => prop.collider !== false)
       .forEach((prop) => expect(prop.collisionBox).toBeDefined());
+  });
+});
+
+describe("Floor 1 emergency presentation", () => {
+  it("uses progression in the game and explicit states in the preview harness", () => {
+    expect(
+      resolveEmergencyMode({
+        previewEnabled: false,
+        previewState: "calm",
+        completed: false,
+      }),
+    ).toBe("emergency");
+    expect(
+      resolveEmergencyMode({
+        previewEnabled: false,
+        previewState: "down",
+        completed: true,
+      }),
+    ).toBe("resolved");
+    expect(
+      resolveEmergencyMode({
+        previewEnabled: true,
+        previewState: "down",
+        completed: true,
+      }),
+    ).toBe("emergency");
+    expect(
+      resolveEmergencyMode({
+        previewEnabled: true,
+        previewState: "fixed",
+        completed: false,
+      }),
+    ).toBe("resolved");
+  });
+
+  it("builds a clockwise alarm-light path around every wall", () => {
+    const width = 1280;
+    const height = 720;
+    const path = createAlarmPath(width, height);
+
+    expect(path.length).toBeGreaterThan(20);
+    expect(path.some(({ y }) => y === 96)).toBe(true);
+    expect(path.some(({ x }) => x === width - 58)).toBe(true);
+    expect(path.some(({ y }) => y === height - 50)).toBe(true);
+    expect(path.some(({ x }) => x === 58)).toBe(true);
   });
 });
