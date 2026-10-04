@@ -9,7 +9,7 @@ import {
   getNextFloor,
 } from "../core/runtime/floorRegistry";
 import { preferences } from "../state/preferences";
-import { floorShowsAlert, progression } from "../state/progression";
+import { progression } from "../state/progression";
 import { audio } from "../systems/AudioSystem";
 import { DialogueSystem } from "../systems/DialogueSystem";
 import { gameEvents } from "../systems/EventBus";
@@ -23,10 +23,7 @@ export class UIScene extends Phaser.Scene {
   private objective!: Phaser.GameObjects.Text;
   private speech?: SpeechBubble;
   private notification?: Notification;
-  private alertFrame!: Phaser.GameObjects.Rectangle;
-  private alertTween?: Phaser.Tweens.Tween;
   private soundToggle!: Phaser.GameObjects.Text;
-  private motionToggle!: Phaser.GameObjects.Text;
   private currentFloor = 0;
   private glossaryById: Record<string, FloorGlossaryEntry> = {};
   private activeDialogue?: {
@@ -63,9 +60,7 @@ export class UIScene extends Phaser.Scene {
         padding: { x: 11, y: 7 },
       })
       .setDepth(900);
-    this.createEmergencyFrame();
-    this.createAccessibilityControls();
-    this.refreshAlertFrame();
+    this.createSoundControl();
 
     gameEvents.on("interaction:available", this.showInteraction, this);
     gameEvents.on("interaction:clear", this.hideInteraction, this);
@@ -83,15 +78,6 @@ export class UIScene extends Phaser.Scene {
     gameEvents.on("tutorial:completed", this.handleTutorialCompleted, this);
     this.input.keyboard?.on("keydown-ESC", this.dismissDialogue, this);
 
-    if (tutorial.managerAlert) {
-      this.notification = new Notification(
-        this,
-        GAME_WIDTH - 620,
-        82,
-        tutorial.managerAlert.speakerName,
-        tutorial.managerAlert.text,
-      );
-    }
     this.time.delayedCall(4200, () => {
       if (
         this.scene.isActive() &&
@@ -133,7 +119,6 @@ export class UIScene extends Phaser.Scene {
     this.glossaryById = Object.fromEntries(
       content.glossary.map((entry) => [entry.id, entry]),
     );
-    this.refreshAlertFrame();
     this.setObjective(
       (floor === 0 ? content.tutorial.interact : content.tutorial.build) ??
         content.tutorial.elevator ??
@@ -290,40 +275,7 @@ export class UIScene extends Phaser.Scene {
     this.scene.bringToTop();
   }
 
-  private createEmergencyFrame(): void {
-    this.alertFrame = this.add
-      .rectangle(
-        GAME_WIDTH / 2,
-        GAME_HEIGHT / 2,
-        GAME_WIDTH - 18,
-        GAME_HEIGHT - 18,
-      )
-      .setStrokeStyle(3, THEME.colors.alert, 0.5)
-      .setDepth(850);
-  }
-
-  private refreshAlertFrame(): void {
-    this.alertTween?.stop();
-    const alerting =
-      this.currentFloor === 1
-        ? !progression.wasCanonicallyCompletedThisSession(1)
-        : floorShowsAlert(this.currentFloor, progression.snapshot);
-    if (!alerting) {
-      this.alertFrame.setAlpha(1).setStrokeStyle(3, THEME.colors.success, 0.8);
-      return;
-    }
-    this.alertFrame.setAlpha(0.7).setStrokeStyle(3, THEME.colors.alert, 0.5);
-    if (preferences.snapshot.reducedMotion) return;
-    this.alertTween = this.tweens.add({
-      targets: this.alertFrame,
-      alpha: { from: 0.25, to: 0.9 },
-      duration: 620,
-      yoyo: true,
-      repeat: -1,
-    });
-  }
-
-  private createAccessibilityControls(): void {
+  private createSoundControl(): void {
     const style: Phaser.Types.GameObjects.Text.TextStyle = {
       color: colorHex(THEME.colors.white),
       backgroundColor: colorHex(THEME.colors.ink),
@@ -332,42 +284,28 @@ export class UIScene extends Phaser.Scene {
       padding: { x: 7, y: 5 },
     };
     this.soundToggle = this.add
-      .text(1060, 18, "", style)
+      .text(GAME_WIDTH - 24, 18, "", style)
+      .setOrigin(1, 0)
       .setDepth(950)
       .setInteractive({ useHandCursor: true })
       .on("pointerup", () => {
         preferences.toggleMuted();
         audio.syncMusicMute();
         audio.playClick();
-        this.refreshAccessibilityLabels();
+        this.refreshSoundLabel();
       });
-    this.motionToggle = this.add
-      .text(1163, 18, "", style)
-      .setDepth(950)
-      .setInteractive({ useHandCursor: true })
-      .on("pointerup", () => {
-        preferences.toggleReducedMotion();
-        audio.playClick();
-        this.refreshAccessibilityLabels();
-        this.refreshAlertFrame();
-      });
-    this.refreshAccessibilityLabels();
+    this.refreshSoundLabel();
   }
 
-  private refreshAccessibilityLabels(): void {
-    const current = preferences.snapshot;
-    this.soundToggle.setText(current.muted ? "SOUND OFF" : "SOUND ON");
-    this.motionToggle.setText(
-      current.reducedMotion ? "MOTION LOW" : "MOTION ON",
+  private refreshSoundLabel(): void {
+    this.soundToggle.setText(
+      preferences.snapshot.muted ? "SOUND OFF" : "SOUND ON",
     );
   }
 
   private handleProgressionUpdated(): void {
-    this.refreshAlertFrame();
     if (this.currentFloor === 0) {
       if (!progression.snapshot.floorResults[0]) return;
-      this.alertTween?.stop();
-      this.alertFrame.setAlpha(1).setStrokeStyle(3, THEME.colors.success, 0.8);
       const completion =
         getFloorByOrder(0).module.definition.content.completionDialogue;
       if (completion) {
@@ -389,15 +327,10 @@ export class UIScene extends Phaser.Scene {
     }
 
     if (this.currentFloor === 1) {
-      if (!progression.wasCanonicallyCompletedThisSession(1)) return;
-      this.alertTween?.stop();
-      this.alertFrame.setAlpha(1).setStrokeStyle(3, THEME.colors.success, 0.8);
       return;
     }
 
     if (!progression.snapshot.floorResults[this.currentFloor]) return;
-    this.alertTween?.stop();
-    this.alertFrame.setAlpha(1).setStrokeStyle(3, THEME.colors.success, 0.8);
     const nextFloor = getNextFloor(this.currentFloor);
     this.setObjective(
       nextFloor
