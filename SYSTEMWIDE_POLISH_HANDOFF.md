@@ -137,6 +137,18 @@ later shutdown listeners still run. Live verification reproduced the exception
 before the fix, then completed the real stress test, returned to the office,
 acknowledged Rhea's debrief, and travelled onward without an exception.
 
+## Nearby NPC names
+
+Maya, Rhea, and the storage team now use the same public UI-kit helper for name
+visibility: labels appear strictly within 140 world pixels of their NPC and hide
+on departure. Initial visibility is applied immediately; floor-owned updaters
+keep it current. Existing label copy, placement, styling, and quest guidance stay
+intact. The generic feature test covers approach, departure, diagonal distance,
+the exact boundary, and destroyed labels. Live previews verify Maya and Rhea
+near/far and the storage team's existing behavior. All 110 tests, type-check,
+production build, and floor validation pass. Changed files pass formatting;
+the full formatting check retains its five previously documented warnings.
+
 ## Remaining sequence
 
 The user added another UI pass, still one verified milestone at a time:
@@ -144,7 +156,7 @@ The user added another UI pass, still one verified milestone at a time:
 1. Simplify Maya's lobby label and all her dialogue headings to "Maya" (done).
 2. Remove the panic staff's flailing arms on both incident floors; keep warning
    markers and the current running speed (done).
-3. Share Floor 2's nearby-only NPC name labels with Maya and Rhea.
+3. Share Floor 2's nearby-only NPC name labels with Maya and Rhea (done).
 4. Give Floor 1 Floor 2's rich dialogue bubbles and inline hover/click term cards,
    replacing the glossary chips while preserving E and Next/Done.
 5. Share a persistent bottom-left glossary across floors and puzzle screens,

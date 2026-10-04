@@ -1,5 +1,6 @@
 import type { FloorContext } from "../../../core/contracts";
 import {
+  bindNearbyNameLabel,
   colorHex,
   openedTermIds,
   onTermsChanged,
@@ -133,6 +134,7 @@ export const createStalePriceIncident = (ctx: FloorContext): void => {
       .setOrigin(0.5, 0)
       .setDepth(member.y + 35)
       .setVisible(false);
+    bindNearbyNameLabel(ctx, tag, member);
     return { ...member, beacon, tag };
   });
 
@@ -445,13 +447,6 @@ export const createStalePriceIncident = (ctx: FloorContext): void => {
       ctx.player.setPosition(frozenAt.x, frozenAt.y);
       ctx.player.setVelocity(0, 0);
     }
-    markers.forEach((member) => {
-      const distance = Math.hypot(
-        ctx.player.x - member.x,
-        ctx.player.y - member.y,
-      );
-      member.tag.setVisible(distance < 140);
-    });
   });
 
   ctx.scene.events.once("shutdown", () => {

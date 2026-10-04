@@ -1,6 +1,7 @@
 import type Phaser from "phaser";
 
 export { beginModal } from "./modal";
+export { bindNearbyNameLabel } from "./nearbyNameLabel";
 
 export {
   createDefaultOfficeLayout,

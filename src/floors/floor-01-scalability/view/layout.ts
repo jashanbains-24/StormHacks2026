@@ -1,5 +1,9 @@
 import type { FloorContext, LayoutHandle } from "../../../core/contracts";
-import { colorHex, createOfficeLayout } from "../../../core/ui-kit";
+import {
+  bindNearbyNameLabel,
+  colorHex,
+  createOfficeLayout,
+} from "../../../core/ui-kit";
 import {
   content,
   onboardingDialogue,
@@ -38,7 +42,7 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
     texture: "specialist",
   });
   ctx.scene.physics.add.collider(ctx.player, specialist);
-  ctx.scene.add
+  const nameLabel = ctx.scene.add
     .text(specialist.x, specialist.y - 54, "Rhea Boot", {
       color: colorHex(ctx.theme.colors.ink),
       fontFamily: ctx.theme.fonts.family,
@@ -48,6 +52,7 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
     })
     .setOrigin(0.5, 1)
     .setDepth(600);
+  bindNearbyNameLabel(ctx, nameLabel, specialist);
   ctx.addInteractable({
     id: "f01:specialist",
     label: "Talk to Rhea",

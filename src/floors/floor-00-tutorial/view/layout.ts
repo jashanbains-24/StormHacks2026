@@ -1,5 +1,6 @@
 import type { FloorContext, LayoutHandle } from "../../../core/contracts";
 import {
+  bindNearbyNameLabel,
   colorHex,
   createOfficeLayout,
   type OfficePropPlacement,
@@ -133,7 +134,7 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
     texture: "specialist",
   });
   ctx.scene.physics.add.collider(ctx.player, mentor);
-  ctx.scene.add
+  const nameLabel = ctx.scene.add
     .text(214, 276, "Maya", {
       color: colorHex(ctx.theme.colors.ink),
       fontFamily: ctx.theme.fonts.family,
@@ -142,6 +143,7 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
       padding: { x: 7, y: 4 },
     })
     .setDepth(600);
+  bindNearbyNameLabel(ctx, nameLabel, mentor);
   ctx.addInteractable({
     id: "f00:mentor",
     label: "Talk to Maya",
