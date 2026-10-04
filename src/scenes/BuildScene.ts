@@ -47,6 +47,7 @@ export class BuildScene extends Phaser.Scene {
   private outcomePanel?: Phaser.GameObjects.Container;
   private crashCount = 0;
   private floorOrder = 1;
+  private evaluatedSinceOpen = false;
 
   constructor() {
     super("BuildScene");
@@ -54,6 +55,17 @@ export class BuildScene extends Phaser.Scene {
 
   init(data: { floorOrder?: number }): void {
     this.floorOrder = data.floorOrder ?? 1;
+    this.evaluatedSinceOpen = false;
+    this.nodes.clear();
+    this.connections = [];
+    this.nextNodeId = 1;
+    this.activeWireFrom = undefined;
+    this.activePointer = undefined;
+    this.simulation = undefined;
+    this.running = false;
+    this.trafficDots = [];
+    this.outcomePanel = undefined;
+    this.crashCount = 0;
   }
 
   create(): void {
@@ -466,6 +478,7 @@ export class BuildScene extends Phaser.Scene {
   }
 
   private showOutcome(evaluation: Evaluation): void {
+    this.evaluatedSinceOpen = true;
     this.destroyTrafficDots();
     this.runButton.setAlpha(1);
     if (evaluation.quality === "canonical") {
@@ -710,6 +723,7 @@ export class BuildScene extends Phaser.Scene {
   private closeBuild(): void {
     this.running = false;
     this.destroyTrafficDots();
+    buildDesignStore.clearAfterEvaluatedAttempt(this.evaluatedSinceOpen);
     this.scene.stop();
     this.scene.resume("FloorScene");
     gameEvents.emit("build:closed");

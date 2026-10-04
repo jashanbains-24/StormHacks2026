@@ -100,6 +100,10 @@ describe("Floor 1 intern flow", () => {
     expect(onboardingDialogue[2]?.text).toContain("two servers");
     expect(onboardingDialogue[2]?.text).toContain("up to five");
     expect(onboardingDialogue[2]?.text).toContain("N+1");
+    expect(canonical).toHaveLength(5);
+    expect(canonical[2]?.text).toContain("separation of responsibilities");
+    expect(canonical[3]?.text).toContain("system-design lesson");
+    expect(canonical[3]?.text).toContain("scale, reliability, and cost");
     expect(canonical[canonical.length - 1]?.text).toContain("elevator");
     expect(underRedundant[underRedundant.length - 1]?.text).toContain("N+1");
     expect(outcomeDialogueFor("unknown")).toEqual(
