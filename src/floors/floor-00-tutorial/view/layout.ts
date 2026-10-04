@@ -4,6 +4,7 @@ import {
   createOfficeLayout,
   type OfficePropPlacement,
 } from "../../../core/ui-kit";
+import { tasks } from "../definition/tasks";
 
 const drawFishTank = (ctx: FloorContext, x: number, y: number): void => {
   const graphics = ctx.scene.add.graphics().setDepth(y + 20);
@@ -101,6 +102,16 @@ const drawWaitingChairRow = (
 };
 
 export const createLayout = (ctx: FloorContext): LayoutHandle => {
+  const formCompleted = Boolean(ctx.progression.resultFor(ctx.floorOrder));
+  ctx.hud.trackTask(tasks.maya, formCompleted);
+  if (formCompleted) {
+    ctx.hud.trackTask(tasks.form, true);
+    ctx.hud.trackTask(tasks.upstairs);
+  }
+  ctx.events.on("tutorial:completed", () => {
+    ctx.hud.trackTask(tasks.form, true);
+    ctx.hud.trackTask(tasks.upstairs);
+  });
   const lobbyProps: OfficePropPlacement[] = [
     { x: 300, y: 190, texture: "desk", scale: 3.5 },
     { x: 300, y: 165, texture: "computer", scale: 2.8, collider: false },
@@ -139,6 +150,8 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
     y: mentor.y,
     onInteract: () => {
       hasMetMaya = true;
+      ctx.hud.trackTask(tasks.maya, true);
+      ctx.hud.trackTask(tasks.form);
       ctx.dialogue.showSpecialist();
     },
   });

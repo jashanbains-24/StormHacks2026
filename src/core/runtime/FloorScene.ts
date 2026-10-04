@@ -115,6 +115,8 @@ export class FloorScene extends Phaser.Scene {
       hud: {
         showToast: (message) => gameEvents.emit("ui:toast", message),
         setObjective: (message) => gameEvents.emit("ui:objective", message),
+        trackTask: (task, completed = false) =>
+          gameEvents.emit("ui:task", this.currentFloor, task, completed),
       },
       dialogue: {
         showSpecialist: () =>

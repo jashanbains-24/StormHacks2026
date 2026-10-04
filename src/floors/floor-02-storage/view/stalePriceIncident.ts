@@ -20,6 +20,7 @@ import {
   stalePriceStatus,
 } from "../definition/stalePriceDialogue";
 import { teachingTermById } from "../definition/terms";
+import { taskUpdatesForStep } from "../definition/tasks";
 import {
   celebrateMonitors,
   flashDatabase,
@@ -78,6 +79,9 @@ export const createStalePriceIncident = (ctx: FloorContext): void => {
 
   const updateObjective = (): void => {
     ctx.hud.setObjective(captionForState(state));
+    taskUpdatesForStep(state.step).forEach(({ task, completed }) =>
+      ctx.hud.trackTask(task, completed),
+    );
   };
 
   const team = [

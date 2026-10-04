@@ -39,6 +39,10 @@ export class F01QuestProgress {
     return this.introducedByRhea;
   }
 
+  get hasOpenedConsole(): boolean {
+    return this.consoleOpened;
+  }
+
   get handoffReady(): boolean {
     return this.elevatorHandoff;
   }

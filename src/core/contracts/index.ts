@@ -15,6 +15,7 @@ export {
   type FloorModule,
   type FloorPreviewState,
   type FloorTheme,
+  type FloorTask,
   type FloorView,
   type LayoutHandle,
   type ThemeTokens,

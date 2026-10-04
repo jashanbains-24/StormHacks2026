@@ -2,7 +2,11 @@ import Phaser from "phaser";
 
 import { GAME_HEIGHT, GAME_WIDTH } from "../config/dimensions";
 import { THEME, colorHex } from "../config/theme";
-import type { FloorDialogueLine, FloorGlossaryEntry } from "../core/contracts";
+import type {
+  FloorDialogueLine,
+  FloorGlossaryEntry,
+  FloorTask,
+} from "../core/contracts";
 import {
   getFloorById,
   getFloorByOrder,
@@ -19,11 +23,14 @@ import { gameEvents, type InteractionRequest } from "../systems/EventBus";
 import { GlossaryPopup } from "../ui/GlossaryPopup";
 import { Notification } from "../ui/Notification";
 import { SpeechBubble } from "../ui/SpeechBubble";
+import { TaskChecklist } from "../ui/TaskChecklist";
+import { TaskChecklistStore } from "../state/taskChecklist";
 
 export class UIScene extends Phaser.Scene {
   private readonly dialogue = new DialogueSystem();
   private interactionPrompt!: Phaser.GameObjects.Text;
-  private objective!: Phaser.GameObjects.Text;
+  private checklist!: TaskChecklist;
+  private readonly tasks = new TaskChecklistStore();
   private speech?: SpeechBubble;
   private notification?: Notification;
   private soundToggle!: Phaser.GameObjects.Text;
@@ -41,6 +48,7 @@ export class UIScene extends Phaser.Scene {
     this.modals.clear();
     this.refreshModalVisibility();
     this.tutorialWelcomeShown = false;
+    this.tasks.reset();
     const tutorial = getFloorByOrder(0).module.definition.content;
     this.interactionPrompt = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT - 17, "", {
@@ -53,16 +61,10 @@ export class UIScene extends Phaser.Scene {
       .setOrigin(0.5, 1)
       .setDepth(900)
       .setVisible(false);
-    this.objective = this.add
-      .text(24, 77, tutorial.tutorial.move ?? "", {
-        color: colorHex(THEME.colors.ink),
-        backgroundColor: colorHex(THEME.colors.panel),
-        fontFamily: THEME.fonts.family,
-        fontSize: "16px",
-        fontStyle: "bold",
-        padding: { x: 11, y: 7 },
-      })
-      .setDepth(900);
+    this.checklist = new TaskChecklist(this, () =>
+      this.dismissDialogue("replaced"),
+    );
+    this.setObjective(tutorial.tutorial.move ?? "");
     this.createSoundControl();
 
     gameEvents.on("interaction:available", this.showInteraction, this);
@@ -77,6 +79,7 @@ export class UIScene extends Phaser.Scene {
     gameEvents.on("dialogue:choice", this.showDialogueChoice, this);
     gameEvents.on("ui:toast", this.showToast, this);
     gameEvents.on("ui:objective", this.setObjective, this);
+    gameEvents.on("ui:task", this.trackTask, this);
     this.game.events.on("ui:modal-opened", this.handleModalOpened, this);
     this.game.events.on("ui:modal-closed", this.handleModalClosed, this);
     gameEvents.on("build:open", this.openBuildScene, this);
@@ -107,7 +110,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   private handleInteractionRequest(request: InteractionRequest): void {
-    if (this.modals.size > 0) {
+    if (this.modals.size > 0 || this.checklist.isOpen) {
       request.handled = true;
       return;
     }
@@ -121,12 +124,19 @@ export class UIScene extends Phaser.Scene {
   }
 
   private closeDialogue(): void {
+    if (this.checklist.isOpen) {
+      this.checklist.close();
+      return;
+    }
     this.dismissDialogue();
   }
 
   private handleFloorChanged(floor: number): void {
     this.dismissDialogue("replaced");
     this.currentFloor = floor;
+    this.checklist.close();
+    if (this.tasks.arrive(floor))
+      this.checklist.setEntries(this.tasks.snapshot);
     const module = getFloorByOrder(floor).module;
     const content = module.definition.content;
     this.dialogue.setSpecialistHints(content.specialistHints);
@@ -242,6 +252,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   private handleModalOpened(token: object): void {
+    this.checklist.close();
     this.modals.add(token);
     this.refreshModalVisibility();
   }
@@ -271,13 +282,24 @@ export class UIScene extends Phaser.Scene {
   }
 
   private setObjective(message: string): void {
-    this.objective.setText(message).setVisible(message.length > 0);
+    this.checklist.setObjective(message);
+  }
+
+  private trackTask(
+    floorOrder: number,
+    task: FloorTask,
+    completed = false,
+  ): void {
+    if (this.tasks.track(floorOrder, task, completed)) {
+      this.checklist.setEntries(this.tasks.snapshot);
+    }
   }
 
   private openBuildScene(floorId: string): void {
     if (this.scene.isActive("BuildScene")) return;
     this.dismissDialogue("replaced");
-    this.objective.setVisible(false);
+    this.checklist.close();
+    this.checklist.setVisible(false);
     this.interactionPrompt.setVisible(false);
     this.scene.pause("FloorScene");
     this.scene.launch("BuildScene", {
@@ -286,7 +308,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   private handleBuildClosed(): void {
-    this.objective.setVisible(true);
+    this.checklist.setVisible(true);
     if (this.currentFloor === 0) return;
     const shouldReloadFloor =
       this.currentFloor === 1
@@ -393,6 +415,7 @@ export class UIScene extends Phaser.Scene {
     gameEvents.off("dialogue:choice", this.showDialogueChoice, this);
     gameEvents.off("ui:toast", this.showToast, this);
     gameEvents.off("ui:objective", this.setObjective, this);
+    gameEvents.off("ui:task", this.trackTask, this);
     this.game.events.off("ui:modal-opened", this.handleModalOpened, this);
     this.game.events.off("ui:modal-closed", this.handleModalClosed, this);
     gameEvents.off("build:open", this.openBuildScene, this);

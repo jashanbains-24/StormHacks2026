@@ -30,6 +30,13 @@ export interface FloorGlossaryEntry {
   realWorld?: string;
 }
 
+export interface FloorTask {
+  id: string;
+  label: string;
+  targetFloor?: number;
+  repeatable?: boolean;
+}
+
 export interface FloorContent {
   managerAlert?: FloorDialogueLine;
   specialistHints: FloorDialogueLine[];
@@ -145,6 +152,7 @@ export interface FloorContext {
   readonly hud: {
     showToast(message: string): void;
     setObjective(message: string): void;
+    trackTask(task: FloorTask, completed?: boolean): void;
   };
   readonly dialogue: {
     showSpecialist(): void;

@@ -15,12 +15,14 @@ import {
   SEATED_NPCS,
 } from "./plan";
 import { getQuestProgress, getSceneRuntime, parseBuildResult } from "./runtime";
+import { trackQuestTasks } from "./taskProgress";
 
 export const createLayout = (ctx: FloorContext): LayoutHandle => {
   createTiledFloor(ctx);
   createOfficeLayout(ctx, F01_OFFICE_PROPS, SEATED_NPCS);
   const runtime = getSceneRuntime(ctx);
   const quest = getQuestProgress(ctx);
+  trackQuestTasks(ctx, quest);
 
   for (const plan of ROAMING_NPCS) {
     const npc = ctx.addNpc(plan.x, plan.y, plan.id, {
@@ -72,6 +74,7 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
             );
             ctx.hud.showToast("Workstation unlocked for another attempt.");
           }
+          trackQuestTasks(ctx, quest);
         });
         return;
       }
@@ -81,6 +84,7 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
         ctx.dialogue.showSequence(onboardingDialogue, () => {
           runtime.dialogueOpen = false;
           quest.finishIntroduction();
+          trackQuestTasks(ctx, quest);
           ctx.hud.showToast(
             "Intern access granted. Your workstation is the empty desk at the right end of the top row.",
           );
@@ -109,6 +113,7 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
     if (!result) return;
     runtime.dialogueOpen = false;
     quest.recordResult(result);
+    trackQuestTasks(ctx, quest);
     ctx.hud.setObjective(
       "Attempt evaluated: close the console and debrief with Rhea",
     );

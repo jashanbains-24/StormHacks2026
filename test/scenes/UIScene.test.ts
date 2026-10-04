@@ -5,6 +5,8 @@ const state = vi.hoisted(() => ({
   canonicalThisSession: false,
   speech: vi.fn(),
   pressedE: false,
+  checklistOpen: false,
+  checklistEntries: [] as { id: string; completed: boolean }[],
 }));
 
 vi.mock("phaser", async () => {
@@ -116,6 +118,21 @@ vi.mock("../../src/ui/Notification", () => ({
   },
 }));
 vi.mock("../../src/ui/GlossaryPopup", () => ({ GlossaryPopup: class {} }));
+vi.mock("../../src/ui/TaskChecklist", () => ({
+  TaskChecklist: class {
+    get isOpen() {
+      return state.checklistOpen;
+    }
+    close() {
+      state.checklistOpen = false;
+    }
+    setVisible() {}
+    setObjective() {}
+    setEntries(entries: typeof state.checklistEntries) {
+      state.checklistEntries = entries;
+    }
+  },
+}));
 
 import { UIScene } from "../../src/scenes/UIScene";
 import { gameEvents } from "../../src/systems/EventBus";
@@ -131,6 +148,8 @@ describe("onboarding HUD lifecycle", () => {
     state.floorResults = {};
     state.canonicalThisSession = false;
     state.pressedE = false;
+    state.checklistOpen = false;
+    state.checklistEntries = [];
     vi.clearAllMocks();
   });
 
@@ -272,5 +291,43 @@ describe("onboarding HUD lifecycle", () => {
     closeSecond();
     expect(ui.scene.setVisible).toHaveBeenCalledTimes(visibilityChanges);
     expect(firstOwner.events.listenerCount("shutdown")).toBe(0);
+  });
+
+  it("keeps discovered tasks across floors and checks travel only on arrival", () => {
+    const ui = new UIScene();
+    ui.create();
+    gameEvents.emit("ui:task", 0, { id: "f00.task.form", label: "Form" }, true);
+    gameEvents.emit("ui:task", 0, {
+      id: "f00.task.travel",
+      label: "Upstairs",
+      targetFloor: 1,
+    });
+    gameEvents.emit("floor:changed", 1);
+    gameEvents.emit("ui:task", 1, { id: "f01.task.rhea", label: "Meet Rhea" });
+    expect(
+      state.checklistEntries.map(({ id, completed }) => ({ id, completed })),
+    ).toEqual([
+      { id: "f00.task.form", completed: true },
+      { id: "f00.task.travel", completed: true },
+      { id: "f01.task.rhea", completed: false },
+    ]);
+    ui.events.emit("shutdown");
+    gameEvents.emit("ui:task", 2, { id: "ignored", label: "Ignored" });
+    expect(state.checklistEntries).toHaveLength(3);
+  });
+
+  it("consumes world interaction while the checklist is open and closes on Escape or a modal", () => {
+    const ui = new UIScene();
+    ui.create();
+    state.checklistOpen = true;
+    const request = { handled: false };
+    gameEvents.emit("interaction:requested", request);
+    expect(request.handled).toBe(true);
+    ui.input.keyboard!.emit("keydown-ESC");
+    expect(state.checklistOpen).toBe(false);
+    state.checklistOpen = true;
+    const release = beginModal(new UIScene());
+    expect(state.checklistOpen).toBe(false);
+    release();
   });
 });

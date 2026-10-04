@@ -2,6 +2,7 @@ import type { BuildUIHandle, FloorContext } from "../../../core/contracts";
 import { createOfficeLayout } from "../../../core/ui-kit";
 import { INTERN_WORKSTATION, INTERN_WORKSTATION_PROPS } from "./plan";
 import { getQuestProgress } from "./runtime";
+import { trackQuestTasks } from "./taskProgress";
 
 export const createBuildUI = (ctx: FloorContext): BuildUIHandle => {
   const quest = getQuestProgress(ctx);
@@ -48,6 +49,7 @@ export const createBuildUI = (ctx: FloorContext): BuildUIHandle => {
         return;
       }
       quest.markConsoleOpened();
+      trackQuestTasks(ctx, quest);
       ctx.openBuild();
     },
   });
