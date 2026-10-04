@@ -12,7 +12,8 @@ import { Npc } from "../../entities/Npc";
 import { Player } from "../../entities/Player";
 import type { SimulationState } from "../../sim/types";
 import { preferences } from "../../state/preferences";
-import { progression } from "../../state/progression";
+import { floorShowsAlert, progression } from "../../state/progression";
+import { audio } from "../../systems/AudioSystem";
 import { gameEvents } from "../../systems/EventBus";
 import { InteractionSystem } from "../../systems/InteractionSystem";
 import { getFloorByOrder, getFloors } from "./floorRegistry";
@@ -28,6 +29,8 @@ export class FloorScene extends Phaser.Scene {
   private interactions!: InteractionSystem;
   private updaters: (() => void)[] = [];
   private interactables: Interactable[] = [];
+  private emergencyLights: Phaser.GameObjects.Arc[] = [];
+  private emergencyTheme?: ThemeTokens;
 
   constructor() {
     super("FloorScene");
@@ -88,6 +91,9 @@ export class FloorScene extends Phaser.Scene {
       theme,
       preview: this.preview,
       preferences: {
+        get muted() {
+          return preferences.snapshot.muted;
+        },
         reducedMotion: preferences.snapshot.reducedMotion,
       },
       sim: {
@@ -95,10 +101,19 @@ export class FloorScene extends Phaser.Scene {
       },
       hud: {
         showToast: (message) => gameEvents.emit("ui:toast", message),
+        setObjective: (message) => gameEvents.emit("ui:objective", message),
       },
       dialogue: {
         showSpecialist: () =>
           gameEvents.emit("dialogue:specialist", floor.module.id),
+        showLine: (line, onDismiss) => {
+          audio.playClick();
+          gameEvents.emit("dialogue:line", line, onDismiss);
+        },
+        showChoice: (line, onChoose) => {
+          audio.playClick();
+          gameEvents.emit("dialogue:choice", line, onChoose);
+        },
       },
       glossary: {
         open: (id) => gameEvents.emit("glossary:open", id),
@@ -112,6 +127,14 @@ export class FloorScene extends Phaser.Scene {
           progression.completeFloor(order, quality, debtNotes);
           gameEvents.emit("progression:updated", progression.snapshot);
         },
+        flag: (name) => progression.flag(name),
+        setFlag: (name, value) => {
+          progression.setFlag(name, value);
+        },
+      },
+      audio: {
+        playClick: () => audio.playClick(),
+        playSuccess: () => audio.playSuccess(),
       },
       events: {
         emit: (name, ...args) => gameEvents.emit(name, ...args),
@@ -205,11 +228,27 @@ export class FloorScene extends Phaser.Scene {
   }
 
   private createEmergencyLights(theme: ThemeTokens): void {
-    const resolved = progression.snapshot.floorResults[1] !== undefined;
-    const color = resolved ? theme.colors.success : theme.colors.alert;
-    [180, 640, 1090].forEach((x) => {
-      const light = this.add.circle(x, 97, 10, color, 0.9).setDepth(30);
-      if (!resolved && !preferences.snapshot.reducedMotion) {
+    this.emergencyTheme = theme;
+    this.emergencyLights = [180, 640, 1090].map((x) =>
+      this.add.circle(x, 97, 10, theme.colors.success, 0.9).setDepth(30),
+    );
+    this.refreshEmergencyLights();
+    const onProgression = (): void => this.refreshEmergencyLights();
+    gameEvents.on("progression:updated", onProgression);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      gameEvents.off("progression:updated", onProgression);
+    });
+  }
+
+  private refreshEmergencyLights(): void {
+    const theme = this.emergencyTheme;
+    if (!theme) return;
+    const alerting = floorShowsAlert(this.currentFloor, progression.snapshot);
+    const color = alerting ? theme.colors.alert : theme.colors.success;
+    this.emergencyLights.forEach((light) => {
+      this.tweens.killTweensOf(light);
+      light.setFillStyle(color, 0.9).setAlpha(0.9);
+      if (alerting && !preferences.snapshot.reducedMotion) {
         this.tweens.add({
           targets: light,
           alpha: { from: 0.25, to: 1 },

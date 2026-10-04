@@ -10,7 +10,7 @@ import { createLayout } from "./view/layout";
 const floor: FloorModule = {
   contractVersion: FLOOR_CONTRACT_VERSION,
   id: "f02",
-  title: "Floor 2: Data Storage — Coming Soon",
+  title: "Floor 2: Data Storage / Caching",
   category: "Data Storage / Caching",
   definition: { content, incident },
   view: { createLayout, createBuildUI, createEffects },

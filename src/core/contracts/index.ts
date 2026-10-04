@@ -7,6 +7,7 @@ export {
   type FloorContent,
   type FloorContext,
   type FloorDefinition,
+  type FloorDialogueChoice,
   type FloorDialogueLine,
   type FloorGlossaryEntry,
   type FloorIncidentDefinition,
