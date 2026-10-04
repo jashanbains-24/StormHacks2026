@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  content,
+  onboardingDialogue,
+  outcomeDialogueFor,
+} from "../../src/floors/floor-01-scalability/definition/content";
+import {
   createAlarmPath,
   resolveEmergencyMode,
 } from "../../src/floors/floor-01-scalability/view/effects";
@@ -13,7 +18,10 @@ import {
   RHEA_POSITION,
   SEATED_NPCS,
 } from "../../src/floors/floor-01-scalability/view/plan";
-import { F01QuestProgress } from "../../src/floors/floor-01-scalability/view/runtime";
+import {
+  F01QuestProgress,
+  parseBuildResult,
+} from "../../src/floors/floor-01-scalability/view/runtime";
 
 describe("Floor 1 intern flow", () => {
   it("keeps the build console locked until Rhea completes onboarding", () => {
@@ -22,6 +30,89 @@ describe("Floor 1 intern flow", () => {
     expect(quest.consoleUnlocked).toBe(false);
     quest.completeIntroduction();
     expect(quest.consoleUnlocked).toBe(true);
+  });
+
+  it("guides the intern from Rhea to the workstation", () => {
+    const quest = new F01QuestProgress();
+
+    expect(quest.guidanceTarget).toBe("rhea");
+    quest.completeIntroduction();
+    expect(quest.guidanceTarget).toBeUndefined();
+    quest.finishIntroduction();
+    expect(quest.guidanceTarget).toBe("workstation");
+    quest.markConsoleOpened();
+    expect(quest.guidanceTarget).toBeUndefined();
+  });
+
+  it("routes evaluated attempts through Rhea before retry or handoff", () => {
+    const quest = new F01QuestProgress();
+    quest.completeIntroduction();
+    quest.finishIntroduction();
+    quest.markConsoleOpened();
+    quest.recordResult({
+      id: "single-server-lb",
+      quality: "failed",
+      title: "Still overloaded",
+      message: "One target remains.",
+      debtNotes: [],
+    });
+
+    expect(quest.consoleUnlocked).toBe(false);
+    expect(quest.guidanceTarget).toBe("rhea");
+    quest.finishDebrief();
+    expect(quest.consoleUnlocked).toBe(true);
+    expect(quest.guidanceTarget).toBeUndefined();
+
+    quest.recordResult({
+      id: "canonical",
+      quality: "canonical",
+      title: "Resilient",
+      message: "Traffic stayed green.",
+      debtNotes: [],
+    });
+    quest.finishDebrief();
+    expect(quest.guidanceTarget).toBe("elevator");
+  });
+
+  it("progressively reveals hints and repeats the most specific one", () => {
+    const quest = new F01QuestProgress();
+
+    expect(quest.nextHint(content.specialistHints)?.id).toBe(
+      "f01_specialist_hint_1",
+    );
+    expect(quest.nextHint(content.specialistHints)?.id).toBe(
+      "f01_specialist_hint_2",
+    );
+    expect(quest.nextHint(content.specialistHints)?.id).toBe(
+      "f01_specialist_hint_3",
+    );
+    expect(quest.nextHint(content.specialistHints)?.id).toBe(
+      "f01_specialist_hint_3",
+    );
+  });
+
+  it("provides onboarding and result-specific teaching dialogue", () => {
+    const canonical = outcomeDialogueFor("canonical");
+    const underRedundant = outcomeDialogueFor("under-redundant");
+    expect(onboardingDialogue).toHaveLength(4);
+    expect(canonical[canonical.length - 1]?.text).toContain("elevator");
+    expect(underRedundant[underRedundant.length - 1]?.text).toContain("N+1");
+    expect(outcomeDialogueFor("unknown")).toEqual(
+      outcomeDialogueFor("invalid"),
+    );
+  });
+
+  it("accepts only complete build-result event payloads", () => {
+    expect(
+      parseBuildResult({
+        id: "canonical",
+        quality: "canonical",
+        title: "Resilient",
+        message: "Traffic stayed green.",
+        debtNotes: [],
+      }),
+    ).toMatchObject({ id: "canonical", quality: "canonical" });
+    expect(parseBuildResult({ id: "canonical" })).toBeUndefined();
   });
 
   it("dismisses Rhea's dialogue only after the player walks away", () => {

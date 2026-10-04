@@ -1,13 +1,19 @@
 import type { FloorContext, LayoutHandle } from "../../../core/contracts";
 import { colorHex, createOfficeLayout } from "../../../core/ui-kit";
 import {
+  content,
+  onboardingDialogue,
+  outcomeDialogueFor,
+} from "../definition/content";
+import { createGuidance } from "./guidance";
+import {
   F01_OFFICE_PROPS,
   isDialogueOutOfRange,
   RHEA_POSITION,
   ROAMING_NPCS,
   SEATED_NPCS,
 } from "./plan";
-import { getQuestProgress, getSceneRuntime } from "./runtime";
+import { getQuestProgress, getSceneRuntime, parseBuildResult } from "./runtime";
 
 export const createLayout = (ctx: FloorContext): LayoutHandle => {
   createOfficeLayout(ctx, F01_OFFICE_PROPS, SEATED_NPCS);
@@ -29,17 +35,6 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
   });
   ctx.scene.physics.add.collider(ctx.player, specialist);
   ctx.scene.add
-    .text(specialist.x, specialist.y - 96, "!", {
-      color: colorHex(ctx.theme.colors.ink),
-      fontFamily: ctx.theme.fonts.mono,
-      fontSize: "24px",
-      fontStyle: "bold",
-      backgroundColor: colorHex(ctx.theme.colors.warning),
-      padding: { x: 7, y: 1 },
-    })
-    .setOrigin(0.5)
-    .setDepth(601);
-  ctx.scene.add
     .text(specialist.x, specialist.y - 54, "Rhea Boot // SRE LEAD", {
       color: colorHex(ctx.theme.colors.ink),
       fontFamily: ctx.theme.fonts.family,
@@ -56,22 +51,84 @@ export const createLayout = (ctx: FloorContext): LayoutHandle => {
     y: specialist.y,
     range: 92,
     onInteract: () => {
-      const firstIntroduction = !quest.consoleUnlocked;
-      quest.completeIntroduction();
+      if (runtime.dialogueOpen) return;
       runtime.dialogueOpen = true;
-      ctx.dialogue.showSpecialist();
-      if (firstIntroduction) {
-        ctx.hud.showToast(
-          "Intern access granted. Your workstation is the empty desk at the right end of the top row.",
-        );
+      if (quest.needsDebrief) {
+        const result = quest.latestResult;
+        if (!result) return;
+        ctx.dialogue.showSequence(outcomeDialogueFor(result.id), () => {
+          runtime.dialogueOpen = false;
+          quest.finishDebrief();
+          if (result.id === "canonical") {
+            ctx.hud.setObjective(
+              "Incident resolved: take the elevator to your next assignment",
+            );
+          } else {
+            ctx.hud.setObjective(
+              "Apply Rhea's feedback and rerun the stress test",
+            );
+            ctx.hud.showToast("Workstation unlocked for another attempt.");
+          }
+        });
+        return;
       }
-      ctx.hud.setObjective(
-        "Intern task: use your assigned workstation to stabilize traffic",
-      );
+
+      if (!quest.hasMetRhea) {
+        quest.completeIntroduction();
+        ctx.dialogue.showSequence(onboardingDialogue, () => {
+          runtime.dialogueOpen = false;
+          quest.finishIntroduction();
+          ctx.hud.showToast(
+            "Intern access granted. Your workstation is the empty desk at the right end of the top row.",
+          );
+          ctx.hud.setObjective(
+            "Use your assigned workstation—or talk to Rhea again for hints",
+          );
+        });
+        return;
+      }
+
+      const hint = quest.nextHint(content.specialistHints);
+      if (!hint) {
+        runtime.dialogueOpen = false;
+        return;
+      }
+      ctx.dialogue.showSequence([hint], () => {
+        runtime.dialogueOpen = false;
+        ctx.hud.setObjective("Use Rhea's hint at your assigned workstation");
+      });
     },
   });
 
+  ctx.events.on("build:result", (floorOrder, value) => {
+    if (floorOrder !== ctx.floorOrder) return;
+    const result = parseBuildResult(value);
+    if (!result) return;
+    runtime.dialogueOpen = false;
+    quest.recordResult(result);
+    ctx.hud.setObjective(
+      "Attempt evaluated: close the console and debrief with Rhea",
+    );
+  });
+
+  createGuidance(ctx, quest, runtime);
+  let objectiveInitialized = false;
   ctx.addUpdater(() => {
+    if (!objectiveInitialized) {
+      objectiveInitialized = true;
+      if (quest.needsDebrief) {
+        ctx.hud.setObjective("Debrief with Rhea about your latest attempt");
+      } else if (quest.handoffReady) {
+        ctx.hud.setObjective(
+          "Incident resolved: take the elevator to your next assignment",
+        );
+      } else if (quest.hasMetRhea) {
+        ctx.hud.setObjective(
+          "Use your assigned workstation—or talk to Rhea again for hints",
+        );
+      }
+    }
+
     const distance = Math.hypot(
       ctx.player.x - specialist.x,
       ctx.player.y - specialist.y,

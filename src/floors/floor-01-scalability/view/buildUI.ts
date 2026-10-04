@@ -62,10 +62,13 @@ export const createBuildUI = (ctx: FloorContext): BuildUIHandle => {
     onInteract: () => {
       if (!isUnlocked()) {
         ctx.hud.showToast(
-          "Workstation locked. Check in with Rhea before touching production.",
+          quest.needsDebrief
+            ? "Rhea locked this attempt for review. Talk to her before retrying."
+            : "Workstation locked. Check in with Rhea before touching production.",
         );
         return;
       }
+      quest.markConsoleOpened();
       ctx.openBuild();
     },
   });

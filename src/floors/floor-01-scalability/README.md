@@ -8,6 +8,11 @@ Canonical design: Client → Load Balancer → 3 Servers.
 
 - Rhea onboards the player as an intern and unlocks the assigned workstation.
 - Her dialogue dismisses when the player leaves conversational range.
+- Guidance arrows lead from Rhea to the workstation, back to the result
+  debrief, and finally to the elevator.
+- Repeated conversations reveal progressively more specific design hints.
+- Every build topology has a dedicated teaching debrief; unsuccessful or
+  fragile designs unlock the workstation for another attempt.
 - Unresolved incidents activate perimeter alarms, red pulses, subtle camera
   shake, and panic routes for roaming NPCs.
 - Solved incidents return roaming NPCs and wall lights to normal.
