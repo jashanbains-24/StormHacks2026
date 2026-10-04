@@ -30,59 +30,27 @@ export const startNormalRoute = (
   });
 };
 
-const createRaisedArms = (
+const createPanicMarker = (
   ctx: FloorContext,
   { npc }: EmergencyStaff,
-  index: number,
   scope: EffectScope,
 ): void => {
-  const skin = 0xf1bd91;
-  const rig = ctx.scene.add.container(npc.x, npc.y);
-  const leftArm = ctx.scene.add
-    .rectangle(-13, -3, 6, 23, skin)
-    .setOrigin(0.5, 1)
-    .setAngle(-28);
-  const rightArm = ctx.scene.add
-    .rectangle(13, -3, 6, 23, skin)
-    .setOrigin(0.5, 1)
-    .setAngle(28);
-  const leftHand = ctx.scene.add.circle(-23, -25, 4, skin);
-  const rightHand = ctx.scene.add.circle(23, -25, 4, skin);
-  const alarm = ctx.scene.add
-    .text(0, -57, "!!", {
-      color: "#ffffff",
-      backgroundColor: "#d64045",
-      fontFamily: ctx.theme.fonts.mono,
-      fontSize: "13px",
-      fontStyle: "bold",
-      padding: { x: 4, y: 1 },
-    })
-    .setOrigin(0.5);
-  rig.add([leftArm, rightArm, leftHand, rightHand, alarm]);
-  scope.object(rig);
+  const reducedMotion = ctx.preferences.reducedMotion;
+  const marker = scope.object(
+    ctx.scene.add
+      .text(npc.x, npc.y - 58, reducedMotion ? "!" : "!!", {
+        color: "#ffffff",
+        backgroundColor: "#d64045",
+        fontFamily: ctx.theme.fonts.mono,
+        fontSize: reducedMotion ? "18px" : "13px",
+        fontStyle: "bold",
+        padding: { x: 4, y: 1 },
+      })
+      .setOrigin(0.5)
+      .setDepth(npc.y + 2),
+  );
   scope.update(() => {
-    rig.setPosition(npc.x, npc.y).setDepth(npc.y + 2);
-  });
-  scope.tween({
-    targets: leftArm,
-    angle: { from: -58, to: -18 },
-    duration: 210 + index * 14,
-    yoyo: true,
-    repeat: -1,
-  });
-  scope.tween({
-    targets: rightArm,
-    angle: { from: 58, to: 18 },
-    duration: 230 + index * 14,
-    yoyo: true,
-    repeat: -1,
-  });
-  scope.tween({
-    targets: [leftHand, rightHand],
-    y: { from: -29, to: -22 },
-    duration: 220,
-    yoyo: true,
-    repeat: -1,
+    if (npc.active) marker.setPosition(npc.x, npc.y - 58).setDepth(npc.y + 2);
   });
 };
 
@@ -93,24 +61,9 @@ export const startPanicRoute = (
   scope: EffectScope,
 ): void => {
   const { npc, plan } = runtime;
-  if (ctx.preferences.reducedMotion) {
-    scope.object(
-      ctx.scene.add
-        .text(npc.x, npc.y - 58, "!", {
-          color: "#ffffff",
-          backgroundColor: "#d64045",
-          fontFamily: ctx.theme.fonts.mono,
-          fontSize: "18px",
-          fontStyle: "bold",
-          padding: { x: 5, y: 1 },
-        })
-        .setOrigin(0.5)
-        .setDepth(650),
-    );
-    return;
-  }
+  createPanicMarker(ctx, runtime, scope);
+  if (ctx.preferences.reducedMotion) return;
 
-  createRaisedArms(ctx, runtime, index, scope);
   let targetX = npc.x;
   let targetY = npc.y;
   let nextTurnAt = 0;
@@ -137,14 +90,5 @@ export const startPanicRoute = (
       ((targetX - npc.x) / currentDistance) * speed,
       ((targetY - npc.y) / currentDistance) * speed,
     );
-  });
-
-  scope.tween({
-    targets: npc,
-    angle: { from: -3, to: 3 },
-    duration: 240 + index * 18,
-    ease: "Sine.easeInOut",
-    yoyo: true,
-    repeat: -1,
   });
 };

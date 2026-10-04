@@ -45,7 +45,7 @@ Floor 2. Floor 2's incident still resets on refresh, per its original handoff.
 Browser checks used temporary progression fixtures and restored the original
 player save afterward. Verified keyboard/numpad and mouse selection, locks,
 travel to Floors 0/1/2, modal closing, pending-debrief recovery, and saved unlock.
-The generic regression suite now contains 108 passing tests. Type-check,
+The generic regression suite now contains 109 passing tests. Type-check,
 production build, and floor boundary validation pass. Changed files pass
 Prettier; the full check still reports the five existing formatting warnings in
 AGENTS.md, floorC_changesv2.md, LOBBY_SPEC.md, PARALLEL_FLOOR_ARCHITECTURE.md, and
@@ -118,6 +118,13 @@ movement, stopped shaking, refresh resetting Floor 2's incident, quiet standby,
 and Floor 1's original panicked staff and sirens. Player saves were restored
 afterward. Browser console had no errors.
 
+The later UI pass simplifies panic staff on both floors: normal walking sprites
+with overhead warning markers, without added arms, hands, or body wobble.
+The existing running speed and route rules remain intact. A shared marker follows
+each NPC and cleans up when the emergency resolves or the scene shuts down.
+The generic effects suite checks marker tracking, speed, and cleanup; live floor
+previews verify the simpler presentation on Floors 1 and 2.
+
 ### Shutdown regression fix
 
 Returning from a canonical Floor 1 stress test restarts the office. Phaser's
@@ -136,7 +143,7 @@ The user added another UI pass, still one verified milestone at a time:
 
 1. Simplify Maya's lobby label and all her dialogue headings to "Maya" (done).
 2. Remove the panic staff's flailing arms on both incident floors; keep warning
-   markers and the current running speed.
+   markers and the current running speed (done).
 3. Share Floor 2's nearby-only NPC name labels with Maya and Rhea.
 4. Give Floor 1 Floor 2's rich dialogue bubbles and inline hover/click term cards,
    replacing the glossary chips while preserving E and Next/Done.

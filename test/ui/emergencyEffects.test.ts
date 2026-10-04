@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import EventEmitter from "eventemitter3";
 import type { FloorContext } from "../../src/core/contracts";
 import { createEmergencyEffects } from "../../src/core/ui-kit/emergency";
-import type { EmergencyStaff } from "../../src/core/ui-kit/emergencyStaff";
+import {
+  startPanicRoute,
+  type EmergencyStaff,
+} from "../../src/core/ui-kit/emergencyStaff";
+import { EffectScope } from "../../src/core/ui-kit/effectScope";
 import { emergencyModeFor } from "../../src/floors/floor-02-storage/view/effects";
 import { THEME } from "../../src/config/theme";
 
@@ -28,7 +32,7 @@ class DisplayObject {
     return this;
   }
   setAngle = vi.fn(() => this);
-  setVelocity = vi.fn(() => this);
+  setVelocity = vi.fn((_x: number, _y: number) => this);
   setPosition = vi.fn(() => this);
   add(children: DisplayObject[]) {
     this.children.push(...children);
@@ -120,6 +124,30 @@ const fixture = (reducedMotion = false) => {
 };
 
 describe("shared emergency presentation", () => {
+  it("runs at the existing panic speed with only a following overhead warning", () => {
+    const f = fixture();
+    const scope = new EffectScope(f.ctx);
+    startPanicRoute(f.ctx, f.staff[0], 0, scope);
+    expect(f.objects).toHaveLength(1);
+    const marker = f.objects[0];
+    expect(marker.text).toBe("!!");
+    expect(f.tweens).toHaveLength(0);
+
+    f.npc.x = 160;
+    f.npc.y = 620;
+    f.updaters.forEach((update) => update());
+    expect(marker.setPosition).toHaveBeenLastCalledWith(160, 562);
+    const [velocityX, velocityY] = f.npc.setVelocity.mock.lastCall!;
+    const speed = Math.hypot(velocityX, velocityY);
+    expect(speed).toBeGreaterThanOrEqual(105);
+    expect(speed).toBeLessThan(119);
+    scope.destroy();
+    expect(marker.active).toBe(false);
+    marker.setPosition.mockClear();
+    f.updaters.forEach((update) => update());
+    expect(marker.setPosition).not.toHaveBeenCalled();
+  });
+
   it("follows storage incident states and explicit preview overrides", () => {
     const game = { enabled: false, state: "calm" } as const;
     for (const state of ["critical", "localMismatch", "warming"] as const)
