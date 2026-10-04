@@ -27,7 +27,7 @@ export class Npc extends Phaser.Physics.Arcade.Sprite {
     const staticBody = options.staticBody ?? true;
     scene.physics.add.existing(this, staticBody);
     this.setScale(2.8);
-    this.setDepth(18);
+    this.setDepth(y);
     this.setFlipX(options.flipX ?? false);
     if (!staticBody) {
       const body = this.body as Phaser.Physics.Arcade.Body;
@@ -44,6 +44,7 @@ export class Npc extends Phaser.Physics.Arcade.Sprite {
     const deltaX = this.x - this.previousPosition.x;
     const deltaY = this.y - this.previousPosition.y;
     this.previousPosition.set(this.x, this.y);
+    this.setDepth(this.y);
 
     if (Math.abs(deltaX) < 0.05 && Math.abs(deltaY) < 0.05) {
       this.anims.stop();

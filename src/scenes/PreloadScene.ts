@@ -2,7 +2,13 @@ import Phaser from "phaser";
 
 import { GAME_HEIGHT, GAME_WIDTH } from "../config/dimensions";
 import { THEME, colorHex } from "../config/theme";
+import { getFloors } from "../core/runtime/floorRegistry";
 import { OFFICE_CHARACTER_TEXTURES } from "../data/office";
+import {
+  getFloorHarnessOptions,
+  getFloorHarnessSimulation,
+  mountFloorHarnessControls,
+} from "../dev/floorHarness";
 
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -74,6 +80,22 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("small-painting", "furniture/small-painting.png");
     this.load.image("meeting-table", "furniture/meeting-table.png");
     this.load.image("cushioned-bench", "furniture/cushioned-bench.png");
+
+    this.load.setPath("");
+    getFloors().forEach(({ module }) => {
+      module.assets.images.forEach((asset) =>
+        this.load.image(asset.key, asset.path),
+      );
+      module.assets.spritesheets.forEach((asset) =>
+        this.load.spritesheet(asset.key, asset.path, {
+          frameWidth: asset.frameWidth,
+          frameHeight: asset.frameHeight,
+        }),
+      );
+      module.assets.audio.forEach((asset) =>
+        this.load.audio(asset.key, asset.path),
+      );
+    });
   }
 
   create(): void {
@@ -138,7 +160,18 @@ export class PreloadScene extends Phaser.Scene {
       });
     });
 
+    const harness = getFloorHarnessOptions();
+    mountFloorHarnessControls(harness);
     this.scene.launch("UIScene");
-    this.scene.start("FloorScene");
+    this.scene.start("FloorScene", {
+      floor: harness.floorOrder,
+      preview: {
+        enabled: harness.enabled,
+        state: harness.healthState,
+      },
+      simulationSnapshot: harness.enabled
+        ? getFloorHarnessSimulation(harness.healthState)
+        : undefined,
+    });
   }
 }

@@ -2,6 +2,7 @@ import Phaser from "phaser";
 
 import { GAME_HEIGHT, GAME_WIDTH } from "../config/dimensions";
 import { THEME, colorHex } from "../config/theme";
+import { getFloorByOrder } from "../core/runtime/floorRegistry";
 import { BUILD_COPY } from "../data/build";
 import { evaluateDesign } from "../sim/evaluator";
 import { createSimulation, tickSimulation } from "../sim/simulation";
@@ -44,9 +45,14 @@ export class BuildScene extends Phaser.Scene {
   private trafficDots: Phaser.GameObjects.Arc[] = [];
   private outcomePanel?: Phaser.GameObjects.Container;
   private crashCount = 0;
+  private floorOrder = 1;
 
   constructor() {
     super("BuildScene");
+  }
+
+  init(data: { floorOrder?: number }): void {
+    this.floorOrder = data.floorOrder ?? 1;
   }
 
   create(): void {
@@ -189,7 +195,12 @@ export class BuildScene extends Phaser.Scene {
     const existing = [...this.nodes.values()].filter(
       (node) => node.componentType === type,
     ).length;
-    const limit = type === "loadBalancer" ? 1 : 5;
+    const limit =
+      getFloorByOrder(
+        this.floorOrder,
+      ).module.definition.incident.availableComponents.find(
+        (component) => component.type === type,
+      )?.max ?? 0;
     if (existing >= limit) {
       this.showConsoleMessage(BUILD_COPY.paletteFull);
       return;
@@ -457,7 +468,11 @@ export class BuildScene extends Phaser.Scene {
       audio.playCrash();
     }
     if (evaluation.quality !== "failed") {
-      progression.completeFloor(1, evaluation.quality, evaluation.debtNotes);
+      progression.completeFloor(
+        this.floorOrder,
+        evaluation.quality,
+        evaluation.debtNotes,
+      );
       gameEvents.emit("progression:updated", progression.snapshot);
     }
 

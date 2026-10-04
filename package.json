@@ -12,6 +12,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "validate:floors": "node scripts/validate-floors.mjs && vitest run test/core/floorRegistry.test.ts",
+    "guard:floor-branch": "node scripts/validate-floors.mjs",
+    "setup:hooks": "git config core.hooksPath .githooks",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

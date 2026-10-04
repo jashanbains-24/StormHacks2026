@@ -2,10 +2,10 @@ import Phaser from "phaser";
 
 import { GAME_HEIGHT, GAME_WIDTH } from "../config/dimensions";
 import { THEME, colorHex } from "../config/theme";
-import type { GlossaryEntry } from "../data/glossary";
+import type { FloorGlossaryEntry } from "../core/contracts";
 
 export class GlossaryPopup extends Phaser.GameObjects.Container {
-  constructor(scene: Phaser.Scene, entry: GlossaryEntry) {
+  constructor(scene: Phaser.Scene, entry: FloorGlossaryEntry) {
     super(scene, 0, 0);
     scene.add.existing(this);
     this.setDepth(1300);

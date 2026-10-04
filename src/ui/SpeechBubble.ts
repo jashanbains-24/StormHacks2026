@@ -2,14 +2,14 @@ import Phaser from "phaser";
 
 import { GAME_HEIGHT, GAME_WIDTH } from "../config/dimensions";
 import { THEME, colorHex } from "../config/theme";
-import type { DialogueLine } from "../data/dialogue";
-import { glossaryById, type GlossaryEntry } from "../data/glossary";
+import type { FloorDialogueLine, FloorGlossaryEntry } from "../core/contracts";
 
 export class SpeechBubble extends Phaser.GameObjects.Container {
   constructor(
     scene: Phaser.Scene,
-    line: DialogueLine,
-    onGlossary: (entry: GlossaryEntry) => void,
+    line: FloorDialogueLine,
+    glossaryById: Readonly<Record<string, FloorGlossaryEntry>>,
+    onGlossary: (entry: FloorGlossaryEntry) => void,
   ) {
     super(scene, 0, 0);
     scene.add.existing(this);

@@ -15,7 +15,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     this.setScale(2.8);
     this.setCollideWorldBounds(true);
-    this.setDepth(20);
+    this.setDepth(y);
     this.body?.setSize(11, 13).setOffset(2, 17);
 
     this.cursors = scene.input.keyboard!.createCursorKeys();
@@ -37,6 +37,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const direction = new Phaser.Math.Vector2(horizontal, vertical).normalize();
 
     this.setVelocity(direction.x * SPEED, direction.y * SPEED);
+    this.setDepth(this.y);
     this.updateAnimation(horizontal, vertical);
   }
 

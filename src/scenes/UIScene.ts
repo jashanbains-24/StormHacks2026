@@ -2,8 +2,8 @@ import Phaser from "phaser";
 
 import { GAME_HEIGHT, GAME_WIDTH } from "../config/dimensions";
 import { THEME, colorHex } from "../config/theme";
-import { MANAGER_ALERT, TUTORIAL_COPY } from "../data/dialogue";
-import type { GlossaryEntry } from "../data/glossary";
+import type { FloorGlossaryEntry } from "../core/contracts";
+import { getFloorById, getFloorByOrder } from "../core/runtime/floorRegistry";
 import { preferences } from "../state/preferences";
 import { progression } from "../state/progression";
 import { audio } from "../systems/AudioSystem";
@@ -23,12 +23,15 @@ export class UIScene extends Phaser.Scene {
   private alertTween?: Phaser.Tweens.Tween;
   private soundToggle!: Phaser.GameObjects.Text;
   private motionToggle!: Phaser.GameObjects.Text;
+  private currentFloor = 0;
+  private glossaryById: Record<string, FloorGlossaryEntry> = {};
 
   constructor() {
     super("UIScene");
   }
 
   create(): void {
+    const tutorial = getFloorByOrder(0).module.definition.content;
     this.interactionPrompt = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT - 17, "", {
         color: colorHex(THEME.colors.white),
@@ -41,7 +44,7 @@ export class UIScene extends Phaser.Scene {
       .setDepth(900)
       .setVisible(false);
     this.objective = this.add
-      .text(24, 77, TUTORIAL_COPY.move, {
+      .text(24, 77, tutorial.tutorial.move ?? "", {
         color: colorHex(THEME.colors.ink),
         backgroundColor: colorHex(THEME.colors.panel),
         fontFamily: THEME.fonts.family,
@@ -65,15 +68,19 @@ export class UIScene extends Phaser.Scene {
     gameEvents.on("build:closed", this.handleBuildClosed, this);
     gameEvents.on("progression:updated", this.handleProgressionUpdated, this);
 
-    this.notification = new Notification(
-      this,
-      GAME_WIDTH - 620,
-      82,
-      MANAGER_ALERT.speakerName,
-      MANAGER_ALERT.text,
-    );
+    if (tutorial.managerAlert) {
+      this.notification = new Notification(
+        this,
+        GAME_WIDTH - 620,
+        82,
+        tutorial.managerAlert.speakerName,
+        tutorial.managerAlert.text,
+      );
+    }
     this.time.delayedCall(4200, () => {
-      if (this.scene.isActive()) this.objective.setText(TUTORIAL_COPY.elevator);
+      if (this.scene.isActive()) {
+        this.objective.setText(tutorial.tutorial.elevator ?? "");
+      }
     });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.removeListeners, this);
@@ -89,24 +96,31 @@ export class UIScene extends Phaser.Scene {
 
   private handleFloorChanged(floor: number): void {
     this.speech?.destroy();
-    if (floor === 0) this.objective.setText(TUTORIAL_COPY.elevator);
-    if (floor === 1) this.objective.setText(TUTORIAL_COPY.build);
-    if (floor === 2) {
-      this.objective.setText("Floor 2 unlocked — incident queue empty");
-    }
+    this.currentFloor = floor;
+    const module = getFloorByOrder(floor).module;
+    const content = module.definition.content;
+    this.dialogue.setSpecialistHints(content.specialistHints);
+    this.glossaryById = Object.fromEntries(
+      content.glossary.map((entry) => [entry.id, entry]),
+    );
+    this.objective.setText(
+      content.tutorial.build ??
+        content.tutorial.elevator ??
+        `${module.title} — incident queue empty`,
+    );
   }
 
   private showSpecialistHint(): void {
     audio.playClick();
     this.speech?.destroy();
-    this.speech = new SpeechBubble(
-      this,
-      this.dialogue.nextSpecialistHint(),
-      (entry) => this.showGlossary(entry),
+    const line = this.dialogue.nextSpecialistHint();
+    if (!line) return;
+    this.speech = new SpeechBubble(this, line, this.glossaryById, (entry) =>
+      this.showGlossary(entry),
     );
   }
 
-  private showGlossary(entry: GlossaryEntry): void {
+  private showGlossary(entry: FloorGlossaryEntry): void {
     new GlossaryPopup(this, entry);
   }
 
@@ -123,20 +137,22 @@ export class UIScene extends Phaser.Scene {
     );
   }
 
-  private openBuildScene(): void {
+  private openBuildScene(floorId: string): void {
     if (this.scene.isActive("BuildScene")) return;
     this.speech?.destroy();
     this.objective.setVisible(false);
     this.interactionPrompt.setVisible(false);
     this.scene.pause("FloorScene");
-    this.scene.launch("BuildScene");
+    this.scene.launch("BuildScene", {
+      floorOrder: getFloorById(floorId).order,
+    });
   }
 
   private handleBuildClosed(): void {
     this.objective.setVisible(true);
     if (progression.snapshot.floorResults[1]) {
       this.scene.stop("FloorScene");
-      this.scene.launch("FloorScene", { floor: 1 });
+      this.scene.launch("FloorScene", { floor: this.currentFloor });
       this.scene.bringToTop();
     }
   }
@@ -146,10 +162,10 @@ export class UIScene extends Phaser.Scene {
       .rectangle(
         GAME_WIDTH / 2,
         GAME_HEIGHT / 2,
-        GAME_WIDTH - 12,
-        GAME_HEIGHT - 12,
+        GAME_WIDTH - 18,
+        GAME_HEIGHT - 18,
       )
-      .setStrokeStyle(9, THEME.colors.alert, 0.58)
+      .setStrokeStyle(3, THEME.colors.alert, 0.5)
       .setDepth(850);
     this.updateEmergencyMotion();
   }
@@ -207,7 +223,7 @@ export class UIScene extends Phaser.Scene {
 
   private handleProgressionUpdated(): void {
     this.alertTween?.stop();
-    this.alertFrame.setAlpha(1).setStrokeStyle(9, THEME.colors.success, 0.9);
+    this.alertFrame.setAlpha(1).setStrokeStyle(3, THEME.colors.success, 0.8);
     this.objective.setText("Floor 2 unlocked — take the elevator");
   }
 

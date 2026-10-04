@@ -2,7 +2,7 @@ import Phaser from "phaser";
 
 import { BuildScene } from "../scenes/BuildScene";
 import { BootScene } from "../scenes/BootScene";
-import { FloorScene } from "../scenes/FloorScene";
+import { FloorScene } from "../core/runtime/FloorScene";
 import { PreloadScene } from "../scenes/PreloadScene";
 import { UIScene } from "../scenes/UIScene";
 import { GAME_HEIGHT, GAME_WIDTH } from "./dimensions";
